@@ -1,0 +1,18 @@
+[package]
+name = "world-atmosphere"
+description = "Atmosphere models: the ISO 2533 International Standard Atmosphere, behind a model seam for weather fields"
+categories = ["no-std", "science"]
+keywords = ["atmosphere", "isa", "pressure", "altitude", "no-std"]
+edition.workspace = true
+version.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+world-core.workspace = true
+# `core` has no f64 transcendentals on the embedded targets.
+libm.workspace = true
+
+[lints]
+workspace = true
