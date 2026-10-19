@@ -1,0 +1,32 @@
+[workspace]
+resolver = "3"
+members = ["crates/world-core", "crates/world-geomag"]
+
+[workspace.package]
+edition = "2024"
+version = "0.1.0"
+rust-version = "1.85"
+license = "AGPL-3.0-or-later"
+repository = "https://github.com/luofang34/world"
+
+[workspace.dependencies]
+world-core = { path = "crates/world-core" }
+libm = "0.2"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+missing_docs = "warn"
+
+[workspace.lints.clippy]
+unwrap_used = "forbid"
+expect_used = "forbid"
+panic = "forbid"
+todo = "forbid"
+unimplemented = "forbid"
+unreachable = "forbid"
+exit = "forbid"
+mem_forget = "forbid"
+get_unwrap = "forbid"
+let_underscore_must_use = "deny"
+let_underscore_future = "deny"
+await_holding_lock = "deny"

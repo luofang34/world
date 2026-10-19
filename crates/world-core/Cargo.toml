@@ -1,0 +1,12 @@
+[package]
+name = "world-core"
+description = "Shared vocabulary for world models: geodetic positions, epochs, datasets, provenance, validity and uncertainty"
+categories = ["no-std", "science::geo"]
+edition.workspace = true
+version.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[lints]
+workspace = true

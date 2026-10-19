@@ -1,0 +1,20 @@
+[package]
+name = "world-geomag"
+description = "World Magnetic Model (WMM2025) evaluator: the Earth's main magnetic field at a geodetic position and date"
+categories = ["no-std", "science::geo"]
+keywords = ["geomagnetism", "wmm", "declination", "no-std"]
+edition.workspace = true
+version.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+world-core.workspace = true
+# Pure-Rust, dependency-free libm: `core` has no f64 transcendentals on
+# the embedded targets, and hand-written ones would be a second
+# numerical implementation to qualify.
+libm.workspace = true
+
+[lints]
+workspace = true
