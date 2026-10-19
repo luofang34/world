@@ -8,5 +8,9 @@ rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 
+[dependencies]
+# `core` has no f64 transcendentals on the embedded targets.
+libm.workspace = true
+
 [lints]
 workspace = true
