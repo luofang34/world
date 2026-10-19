@@ -6,7 +6,8 @@
 //! ([`DecimalYear`]), from what ([`DatasetId`], [`Provenance`]), for which
 //! dates ([`ValidityWindow`]) and how well ([`Uncertainty`]). A
 //! [`LocalTangentPlane`] relates geodetic positions to the north-east-down
-//! frame a vehicle is simulated or estimated in, on the datum's ellipsoid.
+//! frame a vehicle is simulated or estimated in, on the datum's ellipsoid,
+//! and [`normal_gravity`] gives the datum's normal gravity there.
 //!
 //! `no_std` and allocation-free, with `libm` its only dependency, so a
 //! model built on it runs in flight-controller firmware as well as on a
@@ -16,6 +17,7 @@
 
 mod dataset;
 mod ellipsoid;
+mod gravity;
 mod local;
 mod position;
 mod time;
@@ -23,6 +25,7 @@ mod uncertainty;
 
 pub use dataset::{DatasetId, Provenance, ValidityWindow};
 pub use ellipsoid::{Ecef, Ellipsoid, WGS84};
+pub use gravity::normal_gravity;
 pub use local::{LocalTangentPlane, Ned, PositionError};
 pub use position::{GeodeticPosition, HorizontalDatum};
 pub use time::DecimalYear;
