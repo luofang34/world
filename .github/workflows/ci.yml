@@ -31,6 +31,14 @@ jobs:
           RUSTDOCFLAGS: -D missing_docs -D rustdoc::broken_intra_doc_links
         run: cargo doc --workspace --no-deps
 
+  coefficients:
+    name: WMM coefficients reproduce
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: ./scripts/check_wmm_coefficients.sh --self-test
+      - run: ./scripts/check_wmm_coefficients.sh
+
   msrv:
     name: Minimum supported Rust
     runs-on: ubuntu-latest
