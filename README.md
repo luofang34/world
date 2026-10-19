@@ -10,6 +10,9 @@ the same way, from the same published data.
 - `world-geomag`: the World Magnetic Model (WMM2025): the main field,
   declination and inclination at a position and date, with the model's
   published uncertainty. Verified against NOAA's official test values.
+- `world-atmosphere`: the ISO 2533 International Standard Atmosphere:
+  temperature, pressure and density at a typed altitude, behind the
+  `AtmosphereModel` trait a weather field can implement later.
 
 ## Tiers
 
