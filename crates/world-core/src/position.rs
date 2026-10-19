@@ -1,5 +1,7 @@
 //! Where on the Earth a question is asked.
 
+use crate::ellipsoid::{Ellipsoid, WGS84};
+
 /// The reference frame a geodetic position is stated in.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[non_exhaustive]
@@ -20,6 +22,15 @@ pub struct GeodeticPosition {
     pub ellipsoidal_height_m: f64,
     /// The datum the coordinates are stated in.
     pub datum: HorizontalDatum,
+}
+
+impl HorizontalDatum {
+    /// The reference ellipsoid the datum's coordinates are on.
+    pub const fn ellipsoid(self) -> Ellipsoid {
+        match self {
+            Self::Wgs84 => WGS84,
+        }
+    }
 }
 
 impl GeodeticPosition {
