@@ -1,0 +1,16 @@
+[package]
+name = "world-airmass"
+description = "Perishable multi-layer weather, winds aloft, surface observations and hazard volumes"
+edition.workspace = true
+version.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+libm.workspace = true
+world-atmosphere.workspace = true
+world-core.workspace = true
+
+[lints]
+workspace = true

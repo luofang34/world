@@ -1,0 +1,15 @@
+[package]
+name = "world-surveillance"
+description = "Multi-source airborne and surface traffic surveillance store, freshness and relative geometry"
+edition.workspace = true
+version.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+libm.workspace = true
+world-core.workspace = true
+
+[lints]
+workspace = true
