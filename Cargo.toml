@@ -1,6 +1,15 @@
 [workspace]
 resolver = "3"
-members = ["crates/world-atmosphere", "crates/world-core", "crates/world-geomag", "xtask"]
+members = [
+    "crates/world",
+    "crates/world-airmass",
+    "crates/world-atmosphere",
+    "crates/world-core",
+    "crates/world-geomag",
+    "crates/world-notices",
+    "crates/world-surveillance",
+    "xtask",
+]
 
 [workspace.package]
 edition = "2024"
@@ -10,7 +19,13 @@ license = "AGPL-3.0-or-later"
 repository = "https://github.com/luofang34/world"
 
 [workspace.dependencies]
+world = { path = "crates/world", default-features = false }
+world-airmass = { path = "crates/world-airmass" }
+world-atmosphere = { path = "crates/world-atmosphere" }
 world-core = { path = "crates/world-core" }
+world-geomag = { path = "crates/world-geomag" }
+world-notices = { path = "crates/world-notices" }
+world-surveillance = { path = "crates/world-surveillance" }
 libm = "0.2"
 
 [workspace.lints.rust]

@@ -1,0 +1,28 @@
+[package]
+name = "world"
+description = "Two-tier Earth environment models: bare-metal physical baseline and moving operational world"
+edition.workspace = true
+version.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[features]
+default = ["atmosphere", "geomag"]
+atmosphere = ["dep:world-atmosphere"]
+geomag = ["dep:world-geomag"]
+airmass = ["dep:world-airmass", "atmosphere"]
+surveillance = ["dep:world-surveillance"]
+notices = ["dep:world-notices", "atmosphere"]
+moving = ["airmass", "surveillance", "notices"]
+
+[dependencies]
+world-airmass = { workspace = true, optional = true }
+world-atmosphere = { workspace = true, optional = true }
+world-core = { workspace = true }
+world-geomag = { workspace = true, optional = true }
+world-notices = { workspace = true, optional = true }
+world-surveillance = { workspace = true, optional = true }
+
+[lints]
+workspace = true
