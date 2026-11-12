@@ -1,6 +1,6 @@
 [package]
 name = "world"
-description = "Two-tier Earth environment models: bare-metal physical baseline and moving operational world"
+description = "Experimental prototype (not for navigation or flight): two-tier Earth environment models (physical baseline and moving operational world)"
 edition.workspace = true
 version.workspace = true
 rust-version.workspace = true
