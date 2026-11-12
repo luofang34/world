@@ -1,8 +1,13 @@
 # world
 
+> [!WARNING]
+> **Experimental Prototype — Not for Navigation or Flight.**
+> This repository and its crates are an **experimental software prototype** for research, visualization, and simulation only. They have **not** been certified, verified, or approved by any aviation authority, and **must never** be used for real-world navigation, flight planning, traffic avoidance, weather decision-making, or operational flight control.
+
 Models of the Earth and its moving operational environment for vehicles and
-the tools around them: the questions a flight controller, a simulator and a
-ground station all need answered the same way, from the same data contracts.
+the tools around them: the questions a flight-control prototype, a simulator
+and a ground station all need answered the same way, from the same data
+contracts.
 
 ## Two-Tier Workspace
 

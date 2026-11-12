@@ -1,5 +1,10 @@
-//! Two-tier Earth and operational environment models for flight controllers,
-//! simulators and operator stations.
+//! Two-tier Earth and operational environment models for experimental
+//! flight-control prototypes, simulators and operator stations.
+//!
+//! > **Warning — Experimental Prototype (Not for Navigation or Flight):**
+//! > This crate is an unverified research and simulation prototype and must
+//! > never be used for real-world navigation, flight planning, traffic
+//! > separation, or operational flight control.
 //!
 //! ## Tier 0 (default features: `atmosphere` + `geomag`)
 //!
