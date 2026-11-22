@@ -10,6 +10,11 @@ repository.workspace = true
 [dependencies]
 libm.workspace = true
 world-core.workspace = true
+remoteid = { version = "0.3.3", default-features = false, optional = true }
+
+[features]
+# Build `TrackObservation`s from decoded ASTM F3411 Remote ID frames.
+remoteid = ["dep:remoteid"]
 
 [lints]
 workspace = true

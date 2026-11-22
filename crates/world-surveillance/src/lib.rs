@@ -21,8 +21,12 @@ extern crate alloc;
 mod geometry;
 mod identity;
 mod observation;
+#[cfg(feature = "remoteid")]
+mod remote_id;
 mod store;
 
+#[cfg(all(test, feature = "remoteid"))]
+mod remote_id_tests;
 #[cfg(test)]
 mod tests;
 
