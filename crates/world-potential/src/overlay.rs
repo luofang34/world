@@ -7,11 +7,18 @@
 //! applied at every height: upward continuation is not modelled, so it
 //! belongs near the altitude the map was compiled for.
 
-use libm::{cos, fmod, sin};
+use libm::{cos, sin};
 use world_core::{DecimalYear, Ecef, Ellipsoid};
 
+use crate::content::{feed_ellipsoid, feed_f64, feed_f64s, feed_u8, feed_usize, kind};
 use crate::field::{FieldSample, VectorField};
-use crate::{Derivatives, FieldError, Workspace};
+use crate::{CanonicalContent, Derivatives, FieldError, Workspace};
+
+mod lattice;
+mod scalar;
+
+use lattice::Lattice;
+pub use scalar::ScalarAnomalyGrid;
 
 /// Where the grid nodes are: `rows` latitudes from `south_deg` north in
 /// steps of `latitude_step_deg`, `columns` longitudes from `west_deg` east
@@ -47,10 +54,27 @@ pub enum OutsideCoverage {
 /// a down-only grid.
 #[derive(Clone, Debug, PartialEq)]
 pub struct AnomalyGrid<B> {
-    geometry: GridGeometry,
-    values: B,
+    lattice: Lattice<B>,
     shape: Ellipsoid,
     outside: OutsideCoverage,
+}
+
+impl GridGeometry {
+    /// The first node: (latitude of the first row, longitude of the first
+    /// column), degrees.
+    pub fn origin_deg(&self) -> (f64, f64) {
+        (self.south_deg, self.west_deg)
+    }
+
+    /// Node spacing: (row, column), degrees.
+    pub fn spacing_deg(&self) -> (f64, f64) {
+        (self.latitude_step_deg, self.longitude_step_deg)
+    }
+
+    /// Node counts: (rows, columns).
+    pub fn dimensions(&self) -> (usize, usize) {
+        (self.rows, self.columns)
+    }
 }
 
 impl<B: AsRef<[f64]>> AnomalyGrid<B> {
@@ -68,21 +92,8 @@ impl<B: AsRef<[f64]>> AnomalyGrid<B> {
         shape: Ellipsoid,
         outside: OutsideCoverage,
     ) -> Result<Self, FieldError> {
-        let g = geometry;
-        let finite = [g.south_deg, g.west_deg].iter().all(|v| v.is_finite());
-        let steps = [g.latitude_step_deg, g.longitude_step_deg]
-            .iter()
-            .all(|v| v.is_finite() && *v > 0.0);
-        let count = g.rows.checked_mul(g.columns).and_then(|c| c.checked_mul(3));
-        if !finite || !steps || g.rows < 2 || g.columns < 2 {
-            return Err(FieldError::InvalidModel);
-        }
-        if count != Some(values.as_ref().len()) {
-            return Err(FieldError::InvalidModel);
-        }
         Ok(Self {
-            geometry,
-            values,
+            lattice: Lattice::new(geometry, values, 3)?,
             shape,
             outside,
         })
@@ -90,41 +101,68 @@ impl<B: AsRef<[f64]>> AnomalyGrid<B> {
 
     /// The grid.
     pub fn geometry(&self) -> GridGeometry {
-        self.geometry
+        self.lattice.geometry
     }
 
-    fn node(&self, row: usize, column: usize) -> [f64; 3] {
-        let i = 3 * (row * self.geometry.columns + column);
-        let v = self.values.as_ref();
-        let at = |k: usize| v.get(i + k).copied().unwrap_or(0.0);
-        [at(0), at(1), at(2)]
+    /// The node values, three per node, in the order the type documents.
+    pub fn values(&self) -> &[f64] {
+        self.lattice.values.as_ref()
+    }
+
+    /// The ellipsoid the latitudes are geodetic on.
+    pub fn shape(&self) -> Ellipsoid {
+        self.shape
+    }
+
+    /// What a position off the grid gets.
+    pub fn outside(&self) -> OutsideCoverage {
+        self.outside
+    }
+
+    /// Whether the columns span a full 360° of longitude, so that the
+    /// grid interpolates across the ±180° seam.
+    pub fn is_global_longitude(&self) -> bool {
+        self.lattice.is_global()
     }
 
     /// The interpolated north-east-down anomaly at a geodetic latitude and
     /// longitude, or `None` off the grid.
     pub fn anomaly_ned(&self, latitude_deg: f64, longitude_deg: f64) -> Option<[f64; 3]> {
-        let g = self.geometry;
-        let fr = (latitude_deg - g.south_deg) / g.latitude_step_deg;
-        let east = fmod(fmod(longitude_deg - g.west_deg, 360.0) + 360.0, 360.0);
-        let fc = east / g.longitude_step_deg;
-        let (last_row, last_col) = ((g.rows - 1) as f64, (g.columns - 1) as f64);
-        if !(0.0..=last_row).contains(&fr) || !(0.0..=last_col).contains(&fc) {
-            return None;
-        }
-        // Clamped so a point on the last row or column interpolates within
-        // the final cell instead of past it.
-        let r0 = (fr as usize).min(g.rows - 2);
-        let c0 = (fc as usize).min(g.columns - 2);
-        let (tr, tc) = (fr - r0 as f64, fc - c0 as f64);
-        let (a, b) = (self.node(r0, c0), self.node(r0, c0 + 1));
-        let (c, d) = (self.node(r0 + 1, c0), self.node(r0 + 1, c0 + 1));
-        Some([0, 1, 2].map(|k| {
-            let pick = |v: [f64; 3]| v.get(k).copied().unwrap_or(0.0);
-            let south = pick(a) + tc * (pick(b) - pick(a));
-            let north = pick(c) + tc * (pick(d) - pick(c));
-            south + tr * (north - south)
-        }))
+        self.lattice.interpolate(latitude_deg, longitude_deg)
     }
+}
+
+impl<B: AsRef<[f64]>> CanonicalContent for AnomalyGrid<B> {
+    fn visit_content(&self, f: &mut dyn FnMut(&[u8])) {
+        feed_u8(f, kind::VECTOR_GRID);
+        feed_grid(f, self.lattice.geometry, self.values());
+        feed_ellipsoid(f, self.shape);
+        feed_outside(f, self.outside);
+    }
+}
+
+pub(super) fn feed_grid(f: &mut dyn FnMut(&[u8]), g: GridGeometry, values: &[f64]) {
+    for v in [
+        g.south_deg,
+        g.west_deg,
+        g.latitude_step_deg,
+        g.longitude_step_deg,
+    ] {
+        feed_f64(f, v);
+    }
+    feed_usize(f, g.rows);
+    feed_usize(f, g.columns);
+    feed_f64s(f, values);
+}
+
+pub(super) fn feed_outside(f: &mut dyn FnMut(&[u8]), outside: OutsideCoverage) {
+    feed_u8(
+        f,
+        match outside {
+            OutsideCoverage::Zero => 0,
+            OutsideCoverage::Refuse => 1,
+        },
+    );
 }
 
 /// A north-east-down vector at geodetic (latitude, longitude) in
@@ -139,7 +177,7 @@ fn ned_to_body([n, e, d]: [f64; 3], latitude_deg: f64, longitude_deg: f64) -> [f
     ]
 }
 
-impl<B: AsRef<[f64]>> VectorField for AnomalyGrid<B> {
+impl<B: AsRef<[f64]> + Send + Sync> VectorField for AnomalyGrid<B> {
     fn workspace_degree(&self) -> usize {
         0
     }

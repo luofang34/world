@@ -131,3 +131,138 @@ fn malformed_grids_are_refused() {
         Err(FieldError::InvalidModel)
     );
 }
+
+/// Two rows of four columns 90° apart from 180° W, whose value in column
+/// `k` is `10 k`: the span is a full circle, so column 3 and column 0 are
+/// neighbours across the ±180° seam.
+fn global_geometry() -> GridGeometry {
+    GridGeometry {
+        south_deg: 0.0,
+        west_deg: -180.0,
+        latitude_step_deg: 10.0,
+        longitude_step_deg: 90.0,
+        rows: 2,
+        columns: 4,
+    }
+}
+
+fn column_values(per_node: usize) -> Vec<f64> {
+    let mut values = Vec::new();
+    for _row in 0..2 {
+        for col in 0..4 {
+            values.extend((0..per_node).map(|k| 10.0 * col as f64 + 100.0 * k as f64));
+        }
+    }
+    values
+}
+
+#[test]
+fn a_grid_spanning_360_degrees_interpolates_across_the_seam() {
+    let g = AnomalyGrid::new(
+        global_geometry(),
+        column_values(3),
+        WGS84,
+        OutsideCoverage::Refuse,
+    )
+    .unwrap();
+    assert!(g.is_global_longitude());
+    // Halfway from column 3 (east of 90°E, value 30) round to column 0
+    // (value 0) is 135°E, and the same point reads as -225°.
+    for lon in [135.0, -225.0] {
+        let v = g.anomaly_ned(5.0, lon).unwrap();
+        assert!((v[0] - 15.0).abs() < 1e-12, "{lon}: {v:?}");
+        assert!((v[1] - 115.0).abs() < 1e-12 && (v[2] - 215.0).abs() < 1e-12);
+    }
+    // 1° either side of the seam differs by the two cells' slopes only.
+    let (west, east) = (g.anomaly_ned(5.0, 179.0), g.anomaly_ned(5.0, -179.0));
+    assert!((west.unwrap()[0] - 30.0 / 90.0).abs() < 1e-12);
+    assert!((east.unwrap()[0] - 10.0 / 90.0).abs() < 1e-12);
+    // Latitude still has edges.
+    assert_eq!(g.anomaly_ned(10.5, 135.0), None);
+}
+
+#[test]
+fn a_grid_short_of_a_full_circle_does_not_wrap() {
+    let mut geometry = global_geometry();
+    geometry.longitude_step_deg = 89.0;
+    let g = AnomalyGrid::new(geometry, column_values(3), WGS84, OutsideCoverage::Zero).unwrap();
+    assert!(!g.is_global_longitude());
+    // Past the last column (267° east of the west edge) is off the grid.
+    assert_eq!(g.anomaly_ned(5.0, 90.5), None);
+}
+
+#[test]
+fn the_accessors_return_what_the_grid_was_built_from() {
+    let values = column_values(3);
+    let g = AnomalyGrid::new(
+        global_geometry(),
+        values.as_slice(),
+        WGS84,
+        OutsideCoverage::Zero,
+    )
+    .unwrap();
+    let geometry = g.geometry();
+    assert_eq!(geometry.origin_deg(), (0.0, -180.0));
+    assert_eq!(geometry.spacing_deg(), (10.0, 90.0));
+    assert_eq!(geometry.dimensions(), (2, 4));
+    assert_eq!(g.values(), values.as_slice());
+    assert_eq!(g.outside(), OutsideCoverage::Zero);
+    assert_eq!(g.shape(), WGS84);
+}
+
+#[test]
+fn a_scalar_grid_shares_the_interpolation_and_the_seam() {
+    let g = ScalarAnomalyGrid::new(
+        global_geometry(),
+        column_values(1),
+        WGS84,
+        OutsideCoverage::Refuse,
+    )
+    .unwrap();
+    assert!(g.is_global_longitude());
+    assert!((g.anomaly(5.0, 135.0).unwrap() - 15.0).abs() < 1e-12);
+    // 20° is 200° east of the west edge: 20/90 of the way from column 2.
+    assert!((g.anomaly(5.0, 20.0).unwrap() - (20.0 + 10.0 * 20.0 / 90.0)).abs() < 1e-9);
+    // The vector grid's first component takes the same path.
+    let vector = AnomalyGrid::new(
+        global_geometry(),
+        column_values(3),
+        WGS84,
+        OutsideCoverage::Refuse,
+    )
+    .unwrap();
+    for lon in [-170.0, -40.0, 0.0, 91.0, 179.5] {
+        assert_eq!(
+            g.anomaly(5.0, lon),
+            vector.anomaly_ned(5.0, lon).map(|v| v[0])
+        );
+    }
+    assert_eq!(g.values().len(), 8);
+}
+
+#[test]
+fn a_scalar_grid_samples_a_position_and_keeps_the_off_grid_policy() {
+    let on = WGS84.to_ecef(5.0, 20.0, 0.0);
+    let off = WGS84.to_ecef(50.0, 20.0, 0.0);
+    for (outside, expected) in [
+        (OutsideCoverage::Zero, Ok(0.0)),
+        (OutsideCoverage::Refuse, Err(FieldError::OutsideCoverage)),
+    ] {
+        let g =
+            ScalarAnomalyGrid::new(global_geometry(), column_values(1), WGS84, outside).unwrap();
+        let v = g.sample([on.x_m, on.y_m, on.z_m]).unwrap();
+        assert!((v - g.anomaly(5.0, 20.0).unwrap()).abs() < 1e-6);
+        assert_eq!(g.sample([off.x_m, off.y_m, off.z_m]), expected);
+        assert_eq!(
+            g.sample([f64::NAN, 0.0, 0.0]),
+            Err(FieldError::InvalidPosition)
+        );
+    }
+    let wrong = ScalarAnomalyGrid::new(
+        global_geometry(),
+        column_values(3),
+        WGS84,
+        OutsideCoverage::Zero,
+    );
+    assert_eq!(wrong.err(), Some(FieldError::InvalidModel));
+}

@@ -203,7 +203,7 @@ impl GravityModel<[f64; 6]> {
     }
 }
 
-impl<B: AsRef<[f64]>> VectorField for GravityModel<B> {
+impl<B: AsRef<[f64]> + Send + Sync> VectorField for GravityModel<B> {
     fn workspace_degree(&self) -> usize {
         self.truncation.degree
     }
@@ -222,6 +222,27 @@ impl<B: AsRef<[f64]>> VectorField for GravityModel<B> {
             vector: g.acceleration_mps2,
             gradient: g.gradient_per_s2,
         })
+    }
+}
+
+impl<B: AsRef<[f64]>> crate::CanonicalContent for GravityModel<B> {
+    fn visit_content(&self, f: &mut dyn FnMut(&[u8])) {
+        use crate::content::{feed_f64, feed_provenance, feed_truncation, feed_u8, kind};
+        feed_u8(f, kind::GRAVITY);
+        feed_f64(f, self.gm_m3ps2);
+        feed_f64(f, self.radius_m);
+        self.coefficients.visit_content(f);
+        feed_u8(
+            f,
+            match self.tide_system {
+                TideSystem::TideFree => 0,
+                TideSystem::ZeroTide => 1,
+                TideSystem::MeanTide => 2,
+                TideSystem::Unstated => 3,
+            },
+        );
+        feed_truncation(f, self.truncation);
+        feed_provenance(f, self.provenance);
     }
 }
 

@@ -10,8 +10,9 @@
 //! [`MagneticModel`] (Schmidt Gauss coefficients with linear secular
 //! variation and a validity window, converted at load time) are both
 //! scaled syntheses of that core. Both implement [`VectorField`], which a
-//! simulator holds as `dyn` and composes with [`Sum`] and a gridded
-//! [`AnomalyGrid`] overlay.
+//! simulator holds as `dyn` (every field is `Send + Sync`) and composes
+//! with [`Sum`] and a gridded [`AnomalyGrid`] overlay. Each model states
+//! its canonical bytes through [`CanonicalContent`] for hashing by content.
 //!
 //! With the `alloc` feature (default) the crate also reads ICGEM `.gfc`,
 //! PDS SHADR, WMM `.COF` and IGRF coefficient-table files from text, and carries IGRF-14
@@ -25,6 +26,7 @@ extern crate alloc;
 #[cfg(test)]
 extern crate std;
 
+mod content;
 mod error;
 mod field;
 mod gravity;
@@ -38,6 +40,7 @@ mod embedded;
 #[cfg(feature = "alloc")]
 mod read;
 
+pub use content::CanonicalContent;
 pub use error::FieldError;
 pub use field::{FieldSample, NoField, Sum, VectorField};
 pub use gravity::{Gravitation, GravityModel, TideSystem};
@@ -46,7 +49,7 @@ pub use harmonic::{
     synthesize, triangular_index, triangular_len, workspace_len,
 };
 pub use magnetic::{MagneticModel, schmidt_to_geodesy};
-pub use overlay::{AnomalyGrid, GridGeometry, OutsideCoverage};
+pub use overlay::{AnomalyGrid, GridGeometry, OutsideCoverage, ScalarAnomalyGrid};
 pub use tensor::SymmetricTensor;
 
 #[cfg(feature = "alloc")]

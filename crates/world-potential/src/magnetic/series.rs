@@ -83,3 +83,15 @@ impl VectorField for MagneticSeries {
         segment.field(workspace, position_m, at, derivatives)
     }
 }
+
+impl crate::CanonicalContent for MagneticSeries {
+    fn visit_content(&self, f: &mut dyn FnMut(&[u8])) {
+        use crate::content::{feed_provenance, feed_u8, feed_usize, kind};
+        feed_u8(f, kind::MAGNETIC_SERIES);
+        feed_usize(f, self.segments.len());
+        for segment in &self.segments {
+            segment.visit_content(f);
+        }
+        feed_provenance(f, self.provenance);
+    }
+}

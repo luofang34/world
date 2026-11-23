@@ -255,7 +255,7 @@ impl MagneticModel<[f64; 3]> {
     }
 }
 
-impl<B: AsRef<[f64]>> VectorField for MagneticModel<B> {
+impl<B: AsRef<[f64]> + Send + Sync> VectorField for MagneticModel<B> {
     fn workspace_degree(&self) -> usize {
         self.truncation.degree
     }
@@ -268,6 +268,22 @@ impl<B: AsRef<[f64]>> VectorField for MagneticModel<B> {
         derivatives: Derivatives,
     ) -> Result<FieldSample, FieldError> {
         self.field(workspace, position_m, at, derivatives)
+    }
+}
+
+impl<B: AsRef<[f64]>> crate::CanonicalContent for MagneticModel<B> {
+    fn visit_content(&self, f: &mut dyn FnMut(&[u8])) {
+        use crate::content::{
+            feed_f64, feed_provenance, feed_truncation, feed_u8, feed_validity, feed_year, kind,
+        };
+        feed_u8(f, kind::MAGNETIC);
+        feed_f64(f, self.radius_m);
+        feed_year(f, self.epoch);
+        feed_validity(f, self.validity);
+        self.main.visit_content(f);
+        self.secular.visit_content(f);
+        feed_truncation(f, self.truncation);
+        feed_provenance(f, self.provenance);
     }
 }
 

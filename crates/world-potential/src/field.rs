@@ -40,10 +40,12 @@ impl Add for FieldSample {
 /// body's rotation pole, x through its prime meridian) and date.
 ///
 /// Object safe, so a simulator holds `Box<dyn VectorField>` per body and
-/// per physical quantity. Evaluation borrows a caller-owned [`Workspace`]
+/// per physical quantity. A field is `Send + Sync` so one shared instance
+/// serves parallel workers; evaluation takes `&self` and a caller-owned
+/// workspace, so concurrent results are bit-identical. Evaluation borrows a caller-owned [`Workspace`]
 /// of at least [`VectorField::workspace_degree`]; implementations never
 /// allocate.
-pub trait VectorField {
+pub trait VectorField: Send + Sync {
     /// The degree a workspace must hold to evaluate this field.
     fn workspace_degree(&self) -> usize;
 
