@@ -1,0 +1,23 @@
+A hand-written fixture in ICGEM format (values: EGM96 rows of degree 2-3):
+free text before the header keys, Fortran D exponents, a blank row.
+
+product_type                gravity_field
+modelname                   fixture-degree-3
+earth_gravity_constant      0.3986004415D+15
+radius                      0.6378136300E+07
+max_degree                     3
+norm                        fully_normalized
+errors                      formal
+tide_system                 zero_tide
+
+key    L    M         C                   S              sigma C         sigma S
+end_of_head =========================================================================
+gfc     0   0  1.000000000000e+00  0.000000000000e+00  0.00000000e+00  0.00000000e+00
+gfc     2   0 -0.484165371736D-03  0.000000000000e+00  0.35610635e-10  0.00000000e+00
+gfc     2   1 -0.186987635955e-09  0.119528012031e-08  0.10000000e-29  0.10000000e-29
+gfc     2   2  0.243914352398e-05 -0.140016683654e-05  0.53739154e-10  0.54353269e-10
+
+gfc     3   0  0.957254173792e-06  0.000000000000e+00  0.18094237e-10  0.00000000e+00
+gfc     3   1  0.202998882184e-05  0.248513158716e-06  0.13965165e-09  0.13645882e-09
+gfc     3   2  0.904627768605e-06 -0.619025944205e-06  0.10962329e-09  0.11182866e-09
+gfc     3   3  0.721072657057e-06  0.141435626958e-05  0.95156281e-10  0.93285090e-10

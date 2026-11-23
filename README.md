@@ -23,6 +23,12 @@ Enabled by default in the [`world`](crates/world) umbrella crate (`default = ["a
   uncertainty. Verified against NOAA's official test values.
 - `world-atmosphere`: the ISO 2533 International Standard Atmosphere (`Isa`),
   behind the `AtmosphereModel` trait a weather field implements in turn.
+- `world-potential` (a direct dependency; not re-exported by `world`):
+  spherical-harmonic gravity and magnetic potential fields of any body —
+  potential, field vector and gradient tensor from one allocation-free
+  synthesis core, composable as `dyn VectorField` with gridded anomaly
+  overlays. Its `alloc` feature reads ICGEM `.gfc`, PDS SHADR and
+  WMM `.COF` and IGRF table files and embeds IGRF-14 and EGM96 to degree 36.
 
 ### Tier 1 — Moving Operational World (`no_std` + `alloc`, opt-in `moving`)
 

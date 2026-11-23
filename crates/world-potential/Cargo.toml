@@ -1,0 +1,28 @@
+[package]
+name = "world-potential"
+description = "Spherical-harmonic gravity and magnetic potential fields of any body: one allocation-free synthesis core, model readers and field composition"
+categories = ["no-std", "science::geo"]
+keywords = ["gravity", "geomagnetism", "spherical-harmonics", "no-std"]
+edition.workspace = true
+version.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[features]
+default = ["alloc"]
+# Coefficient readers, owned model storage and the embedded IGRF-14 and
+# EGM96 tables. The synthesis core never allocates either way.
+alloc = []
+
+[dependencies]
+world-core.workspace = true
+# `core` has no f64 transcendentals on the embedded targets.
+libm.workspace = true
+
+[dev-dependencies]
+sha2 = "0.10"
+world-geomag.workspace = true
+
+[lints]
+workspace = true
