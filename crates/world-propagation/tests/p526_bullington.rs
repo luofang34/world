@@ -3,9 +3,9 @@
 //! surface follow from the geometry by hand.
 
 use world_propagation::p526::{
-    DeltaBullington, Ground, ProfilePath, diffraction_parameter, knife_edge_loss_approx_db,
+    DeltaBullington, ProfilePath, diffraction_parameter, knife_edge_loss_approx_db,
 };
-use world_propagation::{Frequency, PathLoss, Polarisation, ProfilePoint, Signal};
+use world_propagation::{Frequency, Ground, PathLoss, Polarisation, ProfilePoint, Signal};
 
 const AE_M: f64 = 8_500_000.0;
 

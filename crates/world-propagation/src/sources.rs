@@ -62,3 +62,18 @@ pub const F1245_3: Provenance = Provenance {
     source_sha256: "01ff882892a1eb6d2dc65075bca2814e67b315a94d45cb0f94bd46a503030730",
     terms: ITU_TERMS,
 };
+
+/// The NTIA/ITS reference implementation of the Irregular Terrain Model,
+/// version 1.4, that [`crate::itm`] ports. The commit pins the sources;
+/// the checksum is of its `LICENSE.md`, which states the terms.
+pub const NTIA_ITM: Provenance = Provenance {
+    dataset: DatasetId {
+        name: "NTIA ITM",
+        edition: "v1.4, commit 62168e686e8af4a234cf3f8067d80b543a5d52ef",
+    },
+    publisher: "U.S. Department of Commerce, NTIA Institute for Telecommunication Sciences",
+    source_url: "https://github.com/NTIA/itm/tree/62168e686e8af4a234cf3f8067d80b543a5d52ef",
+    source_file: "LICENSE.md",
+    source_sha256: "2e66fd45776db7cb35d0f087fbadaf193234b383ac89f6eac45fe3f1f7447147",
+    terms: "US-government work not subject to copyright in the US (17 U.S.C. 105); worldwide royalty-free grant to prepare and distribute derivative works; provided AS IS; modified works should note their changes and acknowledge NTIA",
+};

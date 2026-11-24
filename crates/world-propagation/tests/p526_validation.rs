@@ -18,8 +18,8 @@
 //! exact speed of light; the 1.3e-5 relative difference in λ moves the
 //! line-of-sight losses by less than 1e-3 dB, hence the tolerance.
 
-use world_propagation::p526::{DeltaBullington, Ground, ProfilePath, SmoothEarth, TerminalPath};
-use world_propagation::{Frequency, Loss, PathLoss, Polarisation, ProfilePoint, Signal};
+use world_propagation::p526::{DeltaBullington, ProfilePath, SmoothEarth, TerminalPath};
+use world_propagation::{Frequency, Ground, Loss, PathLoss, Polarisation, ProfilePoint, Signal};
 
 const TOLERANCE_DB: f64 = 1.0e-3;
 

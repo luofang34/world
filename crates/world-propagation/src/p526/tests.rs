@@ -1,7 +1,7 @@
 use core::f64::consts::{PI, SQRT_2};
 
 use super::*;
-use crate::{Frequency, Loss, PathLoss, Polarisation, Signal};
+use crate::{Frequency, Ground, Loss, PathLoss, Polarisation, Signal};
 
 /// C(x) and S(x) to ten decimals, from the Maclaurin series of eq. (6)
 /// summed in 60-digit decimal arithmetic (an independent oracle; the
