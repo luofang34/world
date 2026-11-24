@@ -9,6 +9,12 @@ rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 
+[features]
+default = []
+# Space-weather index readers and lookup tables (`no_std` + `alloc`).
+# The NRLMSISE-00 model never allocates either way.
+alloc = []
+
 [dependencies]
 world-core.workspace = true
 # `core` has no f64 transcendentals on the embedded targets.
