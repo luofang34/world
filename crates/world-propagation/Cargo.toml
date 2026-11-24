@@ -1,0 +1,19 @@
+[package]
+name = "world-propagation"
+description = "Radio propagation loss models: ITU-R P.526 diffraction over knife edges, smooth earth and terrain profiles, and ITU-R reference antenna patterns"
+categories = ["no-std", "science"]
+keywords = ["propagation", "diffraction", "itu-r", "antenna", "no-std"]
+edition.workspace = true
+version.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+world-core.workspace = true
+# `core` has no f64 transcendentals on the embedded targets, and `libm`
+# keeps native and wasm32 results bit-identical.
+libm.workspace = true
+
+[lints]
+workspace = true
