@@ -1,0 +1,18 @@
+[package]
+name = "world-thermosphere"
+description = "Empirical models of the upper atmosphere: NRLMSISE-00 species densities, mass density and temperature from solar and geomagnetic activity"
+categories = ["no-std", "science"]
+keywords = ["thermosphere", "msis", "nrlmsise-00", "drag", "no-std"]
+edition.workspace = true
+version.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+world-core.workspace = true
+# `core` has no f64 transcendentals on the embedded targets.
+libm.workspace = true
+
+[lints]
+workspace = true

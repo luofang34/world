@@ -41,6 +41,14 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo run -p xtask -- check-wmm
 
+  msis-parameters:
+    name: NRLMSISE-00 parameters reproduce
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo run -p xtask -- check-msis
+
   msrv:
     name: Minimum supported Rust
     runs-on: ubuntu-latest
@@ -63,5 +71,5 @@ jobs:
           targets: ${{ matrix.target }}
       # The bare-metal target has no std, so a model that reaches for it
       # fails to build here rather than in firmware.
-      - run: cargo build --release --target ${{ matrix.target }} -p world -p world-core -p world-geomag -p world-atmosphere -p world-potential
+      - run: cargo build --release --target ${{ matrix.target }} -p world -p world-core -p world-geomag -p world-atmosphere -p world-potential -p world-thermosphere
       - run: cargo build --release --target ${{ matrix.target }} -p world --features moving -p world-airmass -p world-surveillance -p world-notices

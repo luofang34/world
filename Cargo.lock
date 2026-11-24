@@ -218,6 +218,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "world-thermosphere"
+version = "0.1.0"
+dependencies = [
+ "libm",
+ "world-core",
+]
+
+[[package]]
 name = "xtask"
 version = "0.1.0"
 dependencies = [

@@ -9,6 +9,7 @@ members = [
     "crates/world-notices",
     "crates/world-potential",
     "crates/world-surveillance",
+    "crates/world-thermosphere",
     "xtask",
 ]
 
