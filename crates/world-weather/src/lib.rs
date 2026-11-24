@@ -15,8 +15,7 @@
 //! on a reference the caller gave no altitude for, a station whose position
 //! Airmass does not carry — the answer says so instead of guessing.
 //!
-//! `no_std` + `alloc`, depending on `airmass-core`, `world-core`
-//! and `libm`.
+//! `no_std` + `alloc`, depending on `airmass-core`, `world-core` and `libm`.
 //!
 //! [`WeatherSnapshot`]: airmass_core::WeatherSnapshot
 //! [`ProductProvenance`]: airmass_core::ProductProvenance

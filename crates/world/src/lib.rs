@@ -24,16 +24,17 @@
 //! `no_std` + `alloc`. Traffic and weather state belong to the dedicated
 //! libraries, re-exported here unchanged; this workspace adds queries over
 //! their snapshots and never a second copy of their state:
-//! - `surveillance`: [`surveillance`] is `surveillance-core` (observations,
-//!   the single-writer engine, tracks, deltas, snapshots) and [`traffic`]
-//!   answers ownship-relative and along-route questions of its snapshots.
-//! - `airmass`: [`airmass`] is `airmass-core` (weather ingress, the store,
-//!   immutable snapshots) and [`weather`] answers station and advisory
-//!   questions of its snapshots.
-//! - `aloft`: [`aloft`] is the physical model of the air (soundings, winds
-//!   and temperatures at a point and along a route, cloud layers).
-//! - `notices`: [`notices`] holds perishable airspace notices.
-//! - [`MovingWorld`] composes the four on one caller-driven clock.
+//! - `surveillance`: `world::surveillance` is `surveillance-core`
+//!   (observations, the single-writer engine, tracks, deltas, snapshots) and
+//!   `world::traffic` answers ownship-relative and along-route questions of
+//!   its snapshots.
+//! - `airmass`: `world::airmass` is `airmass-core` (weather ingress, the
+//!   store, immutable snapshots) and `world::weather` answers station and
+//!   advisory questions of its snapshots.
+//! - `aloft`: `world::aloft` is the physical model of the air (soundings,
+//!   winds and temperatures at a point and along a route, cloud layers).
+//! - `notices`: `world::notices` holds perishable airspace notices.
+//! - `MovingWorld` composes the four on one caller-driven clock.
 //!
 //! Nothing here opens a socket, reads a clock or spawns a task: turning a
 //! radio reception, a provider response or a simulator state into a
