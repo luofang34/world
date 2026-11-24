@@ -1,6 +1,6 @@
 [package]
 name = "world-propagation"
-description = "Radio propagation loss models: ITU-R P.526 diffraction over knife edges, smooth earth and terrain profiles, and ITU-R reference antenna patterns"
+description = "Radio propagation loss models: ITU-R P.526 diffraction, NTIA ITM, ITU-R P.531 ionosphere, ITU-R P.618 slant-path attenuation, and reference/tabulated antenna patterns"
 categories = ["no-std", "science"]
 keywords = ["propagation", "diffraction", "itu-r", "antenna", "no-std"]
 edition.workspace = true
@@ -8,6 +8,12 @@ version.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
+
+[features]
+default = []
+# MSI/Planet and NSMA WG16.99 tabulated antenna pattern file readers
+# (`no_std` + `alloc`). All propagation models remain allocation-free.
+alloc = []
 
 [dependencies]
 world-core.workspace = true

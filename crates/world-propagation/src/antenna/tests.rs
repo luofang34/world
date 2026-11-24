@@ -148,3 +148,160 @@ fn f1245_refuses_gain_below_first_side_lobe_and_out_of_band() {
     assert!(F1245::new(d, ghz(0.9)).is_err());
     assert!(F1245::new(d, ghz(87.0)).is_err());
 }
+
+#[cfg(feature = "alloc")]
+mod tabulated_readers {
+    use super::*;
+    use crate::error::PatternParseErrorKind;
+    use alloc::fmt::Write as _;
+    use alloc::string::String;
+
+    fn sample_msi(gain_line: &str) -> String {
+        let mut s = String::from(
+            "NAME Panel_65\nMAKE TestVendor\nFREQUENCY 1920\nH_WIDTH 65.0\nV_WIDTH 7.0\nFRONT_TO_BACK 30.0\n",
+        );
+        writeln!(s, "{gain_line}").unwrap();
+        s.push_str(
+            "TILT Electrical\nPOLARIZATION Vertical\nCOMMENT Unit test fixture\nHORIZONTAL 360\n",
+        );
+        for a in 0..360 {
+            let att = if a <= 180 {
+                (a as f64 / 6.0).min(30.0)
+            } else {
+                ((360 - a) as f64 / 6.0).min(30.0)
+            };
+            writeln!(s, "{a} {att:.2}").unwrap();
+        }
+        s.push_str("VERTICAL 360\n");
+        for a in 0..360 {
+            let dist = a.min(360 - a) as f64;
+            let att = (dist * 0.5).min(25.0);
+            writeln!(s, "{a} {att:.2}").unwrap();
+        }
+        s
+    }
+
+    #[test]
+    fn msi_parses_normalizes_dbd_and_interpolates_2d() {
+        let pat_dbd = TabulatedAntennaPattern::from_msi(&sample_msi("GAIN 15.0 dBd")).unwrap();
+        assert_eq!(pat_dbd.name(), "Panel_65");
+        assert_eq!(pat_dbd.make(), "TestVendor");
+        assert_eq!(pat_dbd.frequency_mhz(), Some(1920.0));
+        assert_eq!(pat_dbd.front_to_back_db(), Some(30.0));
+        assert_eq!(pat_dbd.polarisation(), Some(PatternPolarisation::Vertical));
+        assert!((pat_dbd.gain_max_dbi() - (15.0 + DBD_TO_DBI)).abs() < 1e-12);
+        assert!((pat_dbd.gain_dbi(0.0).unwrap() - 17.15).abs() < 1e-12);
+        assert!((pat_dbd.gain_at_az_el_dbi(180.0, 0.0).unwrap() - (17.15 - 30.0)).abs() < 1e-12);
+        // Wrap-around midpoint between 359° (0.17) and 0° (0.00): ~0.085 dB loss.
+        let wrap = pat_dbd.gain_at_az_el_dbi(359.5, 0.0).unwrap();
+        assert!((wrap - (17.15 - 0.085)).abs() < 1e-2);
+
+        // Bare GAIN without suffix also defaults to dBd per Planet spec.
+        let pat_bare = TabulatedAntennaPattern::from_msi(&sample_msi("GAIN 15.0")).unwrap();
+        assert!((pat_bare.gain_max_dbi() - pat_dbd.gain_max_dbi()).abs() < 1e-12);
+
+        // Explicit dBi preserves value directly.
+        let pat_dbi = TabulatedAntennaPattern::from_msi(&sample_msi("GAIN 17.15 dBi")).unwrap();
+        assert!((pat_dbi.gain_max_dbi() - 17.15).abs() < 1e-12);
+    }
+
+    #[test]
+    fn nsma_parses_multi_polarisation_cuts_and_evaluates_gains() {
+        let adf = "\
+REVNUM:,NSMA WG16.99.050
+REVDAT:,20260101
+ANTMAN:,NordicRF
+MODNUM:,DUAL-900
+LOWFRQ:,806.0
+HGHFRQ:,896.0
+GUNITS:,DBI/DBR
+MDGAIN:,16.8
+AZWIDT:,65.0
+ELWIDT:,7.5
+NUMCUT:,4
+PATCUT:,AZ
+POLARI:,H/H
+NUMAZP:,5
+-180,-30.0
+-90,-15.0
+0,0.0
+90,-15.0
+180,-30.0
+PATCUT:,AZ
+POLARI:,V/V
+NUMAZP:,5
+-180,-28.0
+-90,-14.0
+0,0.0
+90,-14.0
+180,-28.0
+PATCUT:,AZ
+POLARI:,H/V
+NUMAZP:,3
+-180,-40.0
+0,-25.0
+180,-40.0
+PATCUT:,EL
+POLARI:,H/H
+NUPOIN:,3
+-90,-20.0
+0,0.0
+90,-20.0
+ENDFIL:,EOF
+";
+        let pat = TabulatedAntennaPattern::from_nsma(adf).unwrap();
+        assert_eq!(pat.make(), "NordicRF");
+        assert_eq!(pat.name(), "DUAL-900");
+        assert_eq!(pat.frequency_mhz(), Some(851.0));
+        assert_eq!(pat.cuts().len(), 4);
+        assert!((pat.gain_max_dbi() - 16.8).abs() < 1e-12);
+        assert!((pat.gain_at_az_el_dbi(45.0, 0.0).unwrap() - (16.8 - 7.5)).abs() < 1e-12);
+        assert!(
+            (pat.gain_for_polarisation_dbi(0.0, 0.0, PatternPolarisation::CrossHv)
+                .unwrap()
+                - (16.8 - 25.0))
+                .abs()
+                < 1e-12
+        );
+        assert!(
+            (pat.gain_for_polarisation_dbi(90.0, 0.0, PatternPolarisation::Vertical)
+                .unwrap()
+                - (16.8 - 14.0))
+                .abs()
+                < 1e-12
+        );
+    }
+
+    #[test]
+    fn rejects_malformed_msi_and_nsma_inputs() {
+        let bad_count =
+            "NAME X\nGAIN 10 dBi\nHORIZONTAL 3\n0 0.0\n1 1.0\nVERTICAL 2\n0 0.0\n1 1.0\n";
+        assert!(matches!(
+            TabulatedAntennaPattern::from_msi(bad_count),
+            Err(PropagationError::InvalidPatternFormat {
+                kind: PatternParseErrorKind::InvalidCount {
+                    expected: 3,
+                    found: 2
+                },
+                ..
+            })
+        ));
+        let non_mono =
+            "NAME X\nGAIN 10 dBi\nHORIZONTAL 2\n10 0.0\n5 1.0\nVERTICAL 2\n0 0.0\n1 1.0\n";
+        assert!(matches!(
+            TabulatedAntennaPattern::from_msi(non_mono),
+            Err(PropagationError::InvalidPatternFormat {
+                kind: PatternParseErrorKind::NonMonotonicAngle { .. },
+                ..
+            })
+        ));
+        let no_end = "REVNUM:,NSMA WG16.99.050\nMDGAIN:,10\nPATCUT:,AZ\nNUPOIN:,2\n0,0\n90,-3\n";
+        assert!(matches!(
+            TabulatedAntennaPattern::from_nsma(no_end),
+            Err(PropagationError::InvalidPatternFormat {
+                kind: PatternParseErrorKind::MissingEndMarker,
+                ..
+            })
+        ));
+    }
+}
