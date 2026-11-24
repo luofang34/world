@@ -36,7 +36,7 @@ thiserror = { version = "2.0", default-features = false }
 # The dedicated domain libraries own traffic and weather state. Only their
 # portable cores are named: the radio adapters and the repositories' root
 # packages reach a private sibling checkout.
-surveillance-core = { git = "https://github.com/luofang34/Surveillance", rev = "36b5d96052e817da92fc62d383196d11e449df10", default-features = false }
+surveillance-core = { git = "https://github.com/luofang34/Surveillance", rev = "513b8493451c6913fa34eb7614cc887bff3092fe", default-features = false }
 airmass-core = { git = "https://github.com/luofang34/Airmass", rev = "fbfec00b07b8bb34d44c951b0f98a33543487537", default-features = false }
 
 [workspace.lints.rust]

@@ -139,7 +139,7 @@ dependencies = [
 [[package]]
 name = "surveillance-core"
 version = "0.1.0"
-source = "git+https://github.com/luofang34/Surveillance?rev=36b5d96052e817da92fc62d383196d11e449df10#36b5d96052e817da92fc62d383196d11e449df10"
+source = "git+https://github.com/luofang34/Surveillance?rev=513b8493451c6913fa34eb7614cc887bff3092fe#513b8493451c6913fa34eb7614cc887bff3092fe"
 dependencies = [
  "libm",
  "serde",
