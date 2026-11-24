@@ -64,28 +64,58 @@ pub(crate) struct VariabilityInputs {
 /// quantiles, dB, and whether any deviate is beyond ±3.10.
 pub(crate) fn variability(a_ref_db: f64, v: &VariabilityInputs) -> (f64, bool) {
     let climate = v.climate.index();
-    let col = |row: &[f64; 7]| row.get(climate).copied().unwrap_or(f64::NAN);
-    let [time, location, situation] = v.quantiles;
-    let mut z_t = inverse_ccdf(time);
-    let mut z_l = inverse_ccdf(location);
-    let z_s = inverse_ccdf(situation);
     let wn = v.f_mhz / 47.7;
-    let d_ex = libm::sqrt(2.0 * A_9000_M * v.h_e_m[0])
-        + libm::sqrt(2.0 * A_9000_M * v.h_e_m[1])
-        + libm::pow(575.7e12 / wn, 1.0 / 3.0);
-    let d_e = if v.d_m < d_ex {
-        130.0e3 * v.d_m / d_ex
-    } else {
-        130.0e3 + v.d_m - d_ex
-    };
+    let d_e = effective_distance(v.h_e_m, v.d_m, wn);
     let sigma_s = if v.eliminate_situation {
         0.0
     } else {
         5.0 + 3.0 * libm::exp(-d_e / 100.0e3)
     };
-    let year = |row: usize| ALL_YEAR.get(row).map_or(f64::NAN, col);
+    let year = |row: usize| ALL_YEAR.get(row).map_or(f64::NAN, |r| col(r, climate));
     let v_med = curve([year(0), year(1), year(2), year(3), year(4)], d_e);
-    match v.mode {
+    let ([z_t, z_l, z_s], extreme) = folded_deviates(v.quantiles, v.mode);
+    let sigma_l = if v.eliminate_location {
+        0.0
+    } else {
+        let delta_h_d = terrain_roughness(v.d_m, v.delta_h_m);
+        10.0 * wn * delta_h_d / (wn * delta_h_d + 13.0)
+    };
+    let sigma_t = time_deviation(climate, d_e, wn, z_t);
+    let (y_r, y_s) = combine_deviates(v.mode, [z_t, z_l, z_s], [sigma_t, sigma_l, sigma_s]);
+    let result = a_ref_db - v_med - y_r - y_s;
+    // Soft floor for predicted gains over free space [Algorithm eq. 52].
+    let result = if result < 0.0 {
+        result * (29.0 - result) / (29.0 - 10.0 * result)
+    } else {
+        result
+    };
+    (result, extreme)
+}
+
+/// Climate-indexed lookup into a 7-column constant table.
+fn col(row: &[f64; 7], climate: usize) -> f64 {
+    row.get(climate).copied().unwrap_or(f64::NAN)
+}
+
+/// Effective distance d_e (m) for the variability curves.
+fn effective_distance(h_e_m: [f64; 2], d_m: f64, wn: f64) -> f64 {
+    let d_ex = libm::sqrt(2.0 * A_9000_M * h_e_m[0])
+        + libm::sqrt(2.0 * A_9000_M * h_e_m[1])
+        + libm::pow(575.7e12 / wn, 1.0 / 3.0);
+    if d_m < d_ex {
+        130.0e3 * d_m / d_ex
+    } else {
+        130.0e3 + d_m - d_ex
+    }
+}
+
+/// Standard normal deviates folded according to `mode`, plus tail check.
+fn folded_deviates(quantiles: [f64; 3], mode: VariabilityMode) -> ([f64; 3], bool) {
+    let [time, location, situation] = quantiles;
+    let mut z_t = inverse_ccdf(time);
+    let mut z_l = inverse_ccdf(location);
+    let z_s = inverse_ccdf(situation);
+    match mode {
         VariabilityMode::SingleMessage => {
             z_t = z_s;
             z_l = z_s;
@@ -94,42 +124,68 @@ pub(crate) fn variability(a_ref_db: f64, v: &VariabilityInputs) -> (f64, bool) {
         VariabilityMode::Mobile => z_l = z_t,
         VariabilityMode::Broadcast => {}
     }
-    let extreme = [z_t, z_l, z_s]
-        .iter()
-        .any(|z| libm::fabs(*z) > EXTREME_DEVIATE);
-    let sigma_l = if v.eliminate_location {
-        0.0
-    } else {
-        let delta_h_d = terrain_roughness(v.d_m, v.delta_h_m);
-        10.0 * wn * delta_h_d / (wn * delta_h_d + 13.0)
-    };
-    let y_l = sigma_l * z_l;
+    let z = [z_t, z_l, z_s];
+    let extreme = z.iter().any(|val| libm::fabs(*val) > EXTREME_DEVIATE);
+    (z, extreme)
+}
+
+/// Time variability standard deviation σ_t (dB).
+fn time_deviation(climate: usize, d_e: f64, wn: f64, z_t: f64) -> f64 {
     let q = libm::log(0.133 * wn);
     let g = |b1: f64, b2: f64, b3: f64| b1 + b2 / ((b3 * q) * (b3 * q) + 1.0);
-    let g_minus = g(col(&BFM1), col(&BFM2), col(&BFM3));
-    let g_plus = g(col(&BFP1), col(&BFP2), col(&BFP3));
+    let g_minus = g(
+        col(&BFM1, climate),
+        col(&BFM2, climate),
+        col(&BFM3, climate),
+    );
+    let g_plus = g(
+        col(&BFP1, climate),
+        col(&BFP2, climate),
+        col(&BFP3, climate),
+    );
     let sigma_t_minus = curve(
-        [col(&BSM1), col(&BSM2), col(&XSM1), col(&XSM2), col(&XSM3)],
+        [
+            col(&BSM1, climate),
+            col(&BSM2, climate),
+            col(&XSM1, climate),
+            col(&XSM2, climate),
+            col(&XSM3, climate),
+        ],
         d_e,
     ) * g_minus;
     let sigma_t_plus = curve(
-        [col(&BSP1), col(&BSP2), col(&XSP1), col(&XSP2), col(&XSP3)],
+        [
+            col(&BSP1, climate),
+            col(&BSP2, climate),
+            col(&XSP1, climate),
+            col(&XSP2, climate),
+            col(&XSP3, climate),
+        ],
         d_e,
     ) * g_plus;
-    let sigma_td = col(&C_D) * sigma_t_plus;
-    let z_d = col(&Z_D);
+    let sigma_td = col(&C_D, climate) * sigma_t_plus;
+    let z_d = col(&Z_D, climate);
     let tgtd = (sigma_t_plus - sigma_td) * z_d;
-    let sigma_t = if z_t < 0.0 {
+    if z_t < 0.0 {
         sigma_t_minus
     } else if z_t <= z_d {
         sigma_t_plus
     } else {
         sigma_td + tgtd / z_t
-    };
+    }
+}
+
+/// Combines time, location and situation deviations (Y_r, Y_s) for `mode`.
+fn combine_deviates(
+    mode: VariabilityMode,
+    [z_t, z_l, z_s]: [f64; 3],
+    [sigma_t, sigma_l, sigma_s]: [f64; 3],
+) -> (f64, f64) {
+    let y_l = sigma_l * z_l;
     let y_t = sigma_t * z_t;
     let z_s2 = z_s * z_s;
     let y_s_temp = sigma_s * sigma_s + y_t * y_t / (7.8 + z_s2) + y_l * y_l / (24.0 + z_s2);
-    let (y_r, y_s) = match v.mode {
+    match mode {
         VariabilityMode::SingleMessage => (
             0.0,
             libm::sqrt(sigma_t * sigma_t + sigma_l * sigma_l + y_s_temp) * z_s,
@@ -140,15 +196,7 @@ pub(crate) fn variability(a_ref_db: f64, v: &VariabilityInputs) -> (f64, bool) {
             libm::sqrt(y_s_temp) * z_s,
         ),
         VariabilityMode::Broadcast => (y_t + y_l, libm::sqrt(y_s_temp) * z_s),
-    };
-    let result = a_ref_db - v_med - y_r - y_s;
-    // Soft floor for predicted gains over free space [Algorithm eq. 52].
-    let result = if result < 0.0 {
-        result * (29.0 - result) / (29.0 - 10.0 * result)
-    } else {
-        result
-    };
-    (result, extreme)
+    }
 }
 
 /// The climate curves of [TN101v2 eqs III.69, III.70] at effective

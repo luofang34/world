@@ -65,7 +65,7 @@ fn frequency_gain(path: &PathParameters, d_m: f64, a_e_m: f64, n_s: f64, wn: f64
         return None;
     }
     let s = (d_m - ad) / (d_m + ad);
-    let q = (rr / s).max(0.1).min(10.0);
+    let q = (rr / s).clamp(0.1, 10.0);
     let s = s.max(0.1);
     let h_0_m = (d_m - ad) * (d_m + ad) * theta * 0.25 / d_m;
     const Z_0_M: f64 = 1.7556e3;
@@ -103,7 +103,7 @@ fn f_function(td: f64) -> f64 {
 
 /// H₀(r, η_s), interpolated between the curves of [Algorithm 6.13].
 fn h0_function(r: f64, eta_s: f64) -> f64 {
-    let eta_s = eta_s.max(1.0).min(5.0);
+    let eta_s = eta_s.clamp(1.0, 5.0);
     let i = eta_s as usize;
     let q = eta_s - i as f64;
     let curve = |j: usize| {

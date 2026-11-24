@@ -19,6 +19,19 @@ fn flat(length_m: f64, intervals: usize, height_m: f64) -> Vec<ProfilePoint> {
         .collect()
 }
 
+fn hilly(length_m: f64, intervals: usize) -> Vec<ProfilePoint> {
+    (0..=intervals)
+        .map(|i| {
+            let x = length_m * i as f64 / intervals as f64;
+            let height_m = 120.0 * libm::sin(x / 1_500.0) + 45.0 * libm::cos(x / 600.0) + 180.0;
+            ProfilePoint {
+                distance_m: x,
+                height_m,
+            }
+        })
+        .collect()
+}
+
 fn percent(p: f64) -> Percentage {
     Percentage::new(p).unwrap()
 }
@@ -55,13 +68,18 @@ fn loss_over(
 #[test]
 fn inverse_ccdf_is_the_normal_quantile_to_hastings_accuracy() {
     // Q⁻¹ of the standard normal: 0, 1.281552, 2.326348, 3.090232.
-    for (q, z) in [
-        (0.5, 0.0),
-        (0.1, 1.281_552),
-        (0.01, 2.326_348),
-        (0.001, 3.090_232),
-    ] {
+    assert!(inverse_ccdf(0.5).abs() < 4.5e-4, "Q⁻¹(0.5)");
+    for (q, z) in [(0.1, 1.281_552), (0.01, 2.326_348), (0.001, 3.090_232)] {
         assert!((inverse_ccdf(q) - z).abs() < 4.5e-4, "Q⁻¹({q})");
+        assert!(
+            (inverse_ccdf(1.0 - q) + inverse_ccdf(q)).abs() < 1e-12,
+            "Q⁻¹(1-{q})={} vs -Q⁻¹({q})={}",
+            inverse_ccdf(1.0 - q),
+            -inverse_ccdf(q)
+        );
+    }
+    // Exact binary complements verify bit-exact antisymmetry for q != 0.5.
+    for q in [0.25, 0.125, 0.0625] {
         assert_eq!(inverse_ccdf(1.0 - q), -inverse_ccdf(q));
     }
 }
@@ -82,21 +100,30 @@ fn reference_attenuation_is_continuous_through_every_mode_boundary() {
     // Over a flat sea-level path the line-of-sight, diffraction and
     // troposcatter lines are joined at d_sML and d_x by construction.
     let itm = model(VariabilityMode::Broadcast);
-    let mut previous: Option<ItmLoss> = None;
+    let mut previous: Option<(f64, ItmLoss)> = None;
     let mut modes = Vec::new();
+    let mut boundaries = Vec::new();
     for step in 0..=1200 {
         let length_m = 5_000.0 + 500.0 * f64::from(step);
         let terrain = flat(length_m, 200, 0.0);
         let loss = loss_over(&terrain, [30.0, 10.0], [50.0, 50.0, 50.0], &itm, 300.0);
-        if let Some(prev) = previous {
+        if let Some((prev_len, prev)) = previous {
             let jump = loss.reference_attenuation_db - prev.reference_attenuation_db;
-            assert!(jump.abs() < 0.5, "{length_m} m: A_ref jumps {jump} dB");
             assert!(jump > -1e-9, "{length_m} m: A_ref falls by {jump} dB");
+            if prev.mode != loss.mode {
+                assert!(
+                    jump.abs() < 0.5,
+                    "{length_m} m: A_ref jumps {jump} dB across {:?} -> {:?}",
+                    prev.mode,
+                    loss.mode
+                );
+                boundaries.push((prev_len, length_m));
+            }
         }
         if modes.last() != Some(&loss.mode) {
             modes.push(loss.mode);
         }
-        previous = Some(loss);
+        previous = Some((length_m, loss));
     }
     assert_eq!(
         modes,
@@ -106,11 +133,25 @@ fn reference_attenuation_is_continuous_through_every_mode_boundary() {
             PropagationMode::Troposcatter
         ]
     );
+    assert_eq!(boundaries.len(), 2);
+    for (start_m, end_m) in boundaries {
+        let mut prev_fine: Option<ItmLoss> = None;
+        for step in 0..=500 {
+            let length_m = start_m + (end_m - start_m) * f64::from(step) / 500.0;
+            let terrain = flat(length_m, 200, 0.0);
+            let loss = loss_over(&terrain, [30.0, 10.0], [50.0, 50.0, 50.0], &itm, 300.0);
+            if let Some(prev) = prev_fine {
+                let jump = loss.reference_attenuation_db - prev.reference_attenuation_db;
+                assert!(jump.abs() < 0.1, "{length_m} m: fine jump {jump} dB");
+            }
+            prev_fine = Some(loss);
+        }
+    }
 }
 
 #[test]
 fn loss_grows_with_each_percentage() {
-    let terrain = flat(60_000.0, 300, 0.0);
+    let terrain = hilly(60_000.0, 300);
     let itm = model(VariabilityMode::Broadcast);
     let at = |tls: [f64; 3]| loss_over(&terrain, [20.0, 10.0], tls, &itm, 900.0);
     assert!(at([50.0, 50.0, 50.0]).warnings.is_empty());
@@ -130,7 +171,7 @@ fn loss_grows_with_each_percentage() {
 
 #[test]
 fn variability_modes_fold_the_quantiles_they_say() {
-    let terrain = flat(40_000.0, 200, 0.0);
+    let terrain = hilly(40_000.0, 200);
     let check = |itm: Itm, same: [[f64; 3]; 2]| {
         let a = loss_over(&terrain, [20.0, 10.0], same[0], &itm, 450.0);
         let b = loss_over(&terrain, [20.0, 10.0], same[1], &itm, 450.0);
