@@ -32,17 +32,31 @@ pub(crate) enum XtaskError {
         path: PathBuf,
     },
     /// The coefficient file is not the one the provenance names.
-    #[error("WMM.COF sha256 {actual} does not match the recorded provenance {recorded}")]
+    #[error("{file} sha256 {actual} does not match the recorded provenance {recorded}")]
     ChecksumMismatch {
+        /// The committed coefficient file.
+        file: &'static str,
         /// The checksum the provenance records.
         recorded: String,
         /// The committed file's checksum.
         actual: String,
     },
     /// The committed table differs from what the file generates.
-    #[error("{path} is not what WMM.COF generates; run `cargo run -p xtask -- gen-wmm`")]
+    #[error("{path} is not what {file} generates; run `cargo run -p xtask -- {regenerate}`")]
     TableDiffers {
         /// The table.
         path: PathBuf,
+        /// The committed coefficient file.
+        file: &'static str,
+        /// The task that rewrites the table.
+        regenerate: &'static str,
+    },
+    /// The coefficient file does not have the expected arrays.
+    #[error("{file}: {problem}")]
+    Malformed {
+        /// The committed coefficient file.
+        file: &'static str,
+        /// What is wrong with it.
+        problem: String,
     },
 }

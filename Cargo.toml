@@ -9,6 +9,7 @@ members = [
     "crates/world-notices",
     "crates/world-potential",
     "crates/world-propagation",
+    "crates/world-thermosphere",
     "crates/world-traffic",
     "crates/world-weather",
     "xtask",

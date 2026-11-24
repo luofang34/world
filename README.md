@@ -31,6 +31,13 @@ Enabled by default in the [`world`](crates/world) umbrella crate (`default = ["a
   synthesis core, composable as `dyn VectorField` with gridded anomaly
   overlays. Its `alloc` feature reads ICGEM `.gfc`, PDS SHADR and
   WMM `.COF` and IGRF table files and embeds IGRF-14 and EGM96 to degree 36.
+- `world-thermosphere` (a direct dependency; not re-exported by `world`):
+  the NRLMSISE-00 empirical atmosphere (`Nrlmsise00`) — species number
+  densities, total and drag mass density and temperature from the ground
+  to the exosphere, as a pure function of position, time and the solar
+  (F10.7) and geomagnetic (Ap) indices the caller supplies. Verified
+  against the reference distribution's test values and against the NRL
+  Fortran original.
 
 ### Tier 1 — Moving Operational World (`no_std` + `alloc`, opt-in `moving`)
 
@@ -106,4 +113,6 @@ let declination_rad = field.declination_rad();
 AGPL-3.0-or-later; see [LICENSE](LICENSE). `surveillance-core` and
 `airmass-core` are MIT-licensed dependencies. The datasets keep their own
 terms, recorded in each model's provenance: the World Magnetic Model is
-in the public domain.
+in the public domain. NRLMSISE-00 is a work of the U.S. Government, and the C
+implementation its parameters are taken from was placed in the public
+domain by its author.
