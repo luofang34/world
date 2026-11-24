@@ -1,6 +1,6 @@
 //! What a moving world is built from, and what advancing it reports.
 
-use airmass_core::{AdvanceOutcome, StoreConfig};
+use airmass_core::{AdvanceOutcome, StoreConfig, StoreError};
 use surveillance_core::EngineConfig;
 use world_aloft::AloftConfig;
 use world_notices::NoticesConfig;
@@ -49,8 +49,10 @@ impl MovingWorldConfig {
 #[derive(Clone, Debug, PartialEq)]
 pub struct AdvanceReport {
     /// Airmass's own outcome: a new publication when visible weather
-    /// changed, and the next instants at which it can.
-    pub weather: AdvanceOutcome,
+    /// changed and the next instants at which it can, or its refusal of the
+    /// instant. A refusal leaves the weather store where it was while the
+    /// other members advance.
+    pub weather: Result<AdvanceOutcome, StoreError>,
     /// Notices removed because they were cancelled or their validity ended.
     pub notices_expired: usize,
     /// Soundings and cloud layers removed because their validity ended.

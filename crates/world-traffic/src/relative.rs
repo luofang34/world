@@ -60,8 +60,9 @@ pub struct LinearCpa {
     /// Horizontal separation at that time, meters.
     pub horizontal_miss_m: f64,
     /// Track velocity relative to ownship in ownship's local
-    /// north-east-down, m/s. The vertical part is absent when the track
-    /// reports no vertical rate.
+    /// north-east-down, m/s. The vertical part is zero when the track
+    /// reports no barometric vertical rate: an unknown rate is not compared
+    /// with ownship's.
     pub relative_velocity_ned_m_s: Ned,
 }
 

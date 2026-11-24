@@ -14,7 +14,7 @@ pub enum MovingWorldError {
     /// Surveillance rejected its engine configuration.
     #[error("surveillance engine configuration is invalid")]
     SurveillanceConfig(#[source] EngineConfigError),
-    /// Airmass rejected its configuration, an ingress or an instant.
+    /// Airmass rejected its configuration or an ingress.
     #[error("the weather store refused the operation")]
     Weather(#[source] StoreError),
     /// The engine could not publish a track state while advancing.

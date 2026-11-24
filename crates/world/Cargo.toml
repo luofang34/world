@@ -3,7 +3,8 @@ name = "world"
 description = "Experimental prototype (not for navigation or flight): Earth environment models and the umbrella over the Surveillance and Airmass domain libraries"
 edition.workspace = true
 version.workspace = true
-# The Surveillance and Airmass cores this crate builds on declare 1.88.
+# Not the workspace value: this crate builds on the Surveillance and Airmass
+# cores and cannot support an older toolchain than they declare.
 rust-version = "1.88"
 license.workspace = true
 repository.workspace = true

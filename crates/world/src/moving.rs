@@ -85,20 +85,21 @@ impl MovingWorld {
     /// derived from the other. Its monotonic reading ages tracks
     /// (Surveillance) and bounds a weather product's maximum age (Airmass).
     /// Its UTC reading decides weather and notice validity and the date the
-    /// aloft model is pruned at. The monotonic reading must not go back;
-    /// Airmass also refuses a UTC reading earlier than the last one it
-    /// accepted, and that refusal is returned unchanged.
+    /// aloft model is pruned at.
     ///
-    /// The weather store is advanced first because it is the member that can
-    /// refuse a time, so a refused instant leaves every member where it was.
-    /// Advancing twice to one instant is harmless.
+    /// The monotonic reading must not go back, and a reading that does is
+    /// refused before anything advances. UTC can step, and Airmass refuses a
+    /// UTC reading earlier than the last one it accepted. That refusal is
+    /// reported in [`AdvanceReport::weather`] and stops only the weather
+    /// store: traffic ages on the monotonic clock alone, so a civil-time
+    /// fault must not hold tracks current. Advancing twice to one instant is
+    /// harmless.
     ///
     /// # Errors
     ///
     /// [`MovingWorldError::MonotonicRegression`] before anything advances,
-    /// [`MovingWorldError::Weather`] when Airmass refuses the instant, and
-    /// [`MovingWorldError::TrackPublication`] when the engine cannot publish
-    /// a track state.
+    /// and [`MovingWorldError::TrackPublication`] when the engine cannot
+    /// publish a track state.
     pub fn advance(
         &mut self,
         now: WorldInstant,
@@ -112,13 +113,10 @@ impl MovingWorld {
                 supplied_micros: now.monotonic_micros,
             });
         }
-        let weather = self
-            .weather
-            .advance_time(evaluation_time(now))
-            .map_err(MovingWorldError::Weather)?;
         self.surveillance
             .advance_time(now.monotonic_micros, on_track_delta)
             .map_err(MovingWorldError::TrackPublication)?;
+        let weather = self.weather.advance_time(evaluation_time(now));
         let date = now.decimal_year();
         let notices_expired = self.notices.prune_expired(date);
         let aloft_expired = self.aloft.prune_expired(date);

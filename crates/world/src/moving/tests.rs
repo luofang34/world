@@ -188,7 +188,7 @@ fn advancing_expires_a_track_and_a_weather_product_each_by_its_own_rule() {
         .advance(instant(30), |delta| deltas.push(delta.clone()))
         .unwrap();
     assert!(matches!(deltas.as_slice(), [TrackDelta::Coasting(_)]));
-    assert!(report.weather.publication().is_none());
+    assert!(report.weather.unwrap().publication().is_none());
     let coasting = world.surveillance.snapshot(INTRUDER).unwrap();
     assert_eq!(coasting.phase, TrackPhase::Coasting);
     assert!(matches!(
@@ -210,7 +210,8 @@ fn advancing_expires_a_track_and_a_weather_product_each_by_its_own_rule() {
         }]
     ));
     assert!(world.surveillance.snapshot(INTRUDER).is_none());
-    let published = report.weather.publication().unwrap();
+    let outcome = report.weather.unwrap();
+    let published = outcome.publication().unwrap();
     let product = published
         .snapshot()
         .product(&WeatherProductId::new("fb/ilg"))
@@ -224,7 +225,7 @@ fn advancing_expires_a_track_and_a_weather_product_each_by_its_own_rule() {
 }
 
 #[test]
-fn a_clock_that_steps_back_is_refused_and_nothing_advances() {
+fn a_monotonic_step_back_is_refused_before_anything_advances() {
     let mut world = world(2);
     world
         .surveillance
@@ -239,20 +240,34 @@ fn a_clock_that_steps_back_is_refused_and_nothing_advances() {
             supplied_micros: 9 * SECOND,
         })
     );
-
-    // UTC stepped back a minute while monotonic ran on: Airmass refuses, and
-    // the engine was not advanced past its coast window by the refused call.
-    let stepped = WorldInstant::new(40 * SECOND, START_UTC_MICROS - 60_000_000);
-    let refused = world.advance(stepped, |_| {}).map(|_| ());
-    assert!(matches!(
-        refused,
-        Err(MovingWorldError::Weather(
-            StoreError::UtcTimeRegression { .. }
-        ))
-    ));
     assert_eq!(world.now(), Some(instant(10)));
+}
+
+#[test]
+fn a_utc_step_back_stops_weather_but_not_traffic_ageing() {
+    let mut world = world(6);
+    world
+        .surveillance
+        .ingest(simulated_traffic(instant(1)), |_| {})
+        .unwrap();
+    world
+        .accept_weather(winds_aloft_product("fb/ilg", 60), instant(1))
+        .unwrap();
+    world.advance(instant(10), |_| {}).unwrap();
+
+    // Civil time is corrected back a minute while the monotonic clock runs on.
+    let stepped = WorldInstant::new(40 * SECOND, START_UTC_MICROS - 60_000_000);
+    let report = world.advance(stepped, |_| {}).unwrap();
+    assert!(matches!(
+        report.weather,
+        Err(StoreError::UtcTimeRegression { .. })
+    ));
+    // The track has been silent 39 s on the clock Surveillance ages it by.
     let track = world.surveillance.snapshot(INTRUDER).unwrap();
-    assert_eq!(track.phase, TrackPhase::Active);
+    assert_eq!(track.phase, TrackPhase::Coasting);
+    // Airmass still publishes what it held at the last instant it accepted.
+    assert_eq!(text_reports(world.weather.capture().snapshot()).count(), 1);
+    assert_eq!(world.now(), Some(stepped));
 }
 
 #[test]
@@ -277,6 +292,7 @@ fn a_sounding_bound_to_a_product_lives_exactly_as_long_as_the_product() {
 
     // The sounding's own window runs to 2027; Airmass's product ends at 60 s.
     let report = world.advance(instant(61), |_| {}).unwrap();
+    assert!(report.weather.is_ok());
     assert_eq!(report.soundings_released, 1);
     assert_eq!(world.sounding_product(1), None);
     assert_eq!(north_wind_at(&world, instant(61)), 0.0);

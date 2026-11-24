@@ -52,7 +52,7 @@ jobs:
           - rust: 1.85.0
             packages: -p world-core -p world-geomag -p world-atmosphere -p world-potential -p world-aloft -p world-notices -p xtask
           # The umbrella and the query layers build on the Surveillance and
-          # Airmass cores, which declare 1.88.
+          # Airmass cores and take their minimum from them.
           - rust: 1.88.0
             packages: --workspace
     steps:
