@@ -1,0 +1,19 @@
+[package]
+name = "world-traffic"
+description = "Traffic queries over Surveillance track snapshots: ownship-relative geometry, linear closest approach and proximity along a route"
+edition.workspace = true
+version.workspace = true
+# Not the workspace value: this crate builds on the Surveillance and Airmass
+# cores and cannot support an older toolchain than they declare.
+rust-version = "1.88"
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+libm.workspace = true
+surveillance-core.workspace = true
+thiserror.workspace = true
+world-core.workspace = true
+
+[lints]
+workspace = true

@@ -1,6 +1,7 @@
 //! When a question is asked, as the decimal year geophysical models take.
 
 const SECONDS_PER_DAY: i64 = 86_400;
+const MICROS_PER_SECOND: i64 = 1_000_000;
 
 /// A UTC instant as a decimal year: the calendar year plus the elapsed
 /// fraction of it, leap years counted.
@@ -23,6 +24,16 @@ impl DecimalYear {
         let year_days = if is_leap(year) { 366 } else { 365 };
         let into_year = unix_seconds - days_to_year_start(year) * SECONDS_PER_DAY;
         Self(year as f64 + into_year as f64 / (year_days * SECONDS_PER_DAY) as f64)
+    }
+
+    /// The decimal year of a UTC instant given as microseconds since the
+    /// Unix epoch, interpolated inside its whole second.
+    pub fn from_unix_micros(unix_micros: i64) -> Self {
+        let whole = unix_micros.div_euclid(MICROS_PER_SECOND);
+        let fraction = unix_micros.rem_euclid(MICROS_PER_SECOND) as f64 / MICROS_PER_SECOND as f64;
+        let start = Self::from_unix_seconds(whole).0;
+        let end = Self::from_unix_seconds(whole.saturating_add(1)).0;
+        Self(start + (end - start) * fraction)
     }
 
     /// The decimal year as a number.
