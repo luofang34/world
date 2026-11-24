@@ -271,6 +271,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "world-thermosphere"
+version = "0.1.0"
+dependencies = [
+ "libm",
+ "world-core",
+]
+
+[[package]]
 name = "world-traffic"
 version = "0.1.0"
 dependencies = [

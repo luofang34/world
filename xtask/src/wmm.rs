@@ -6,6 +6,7 @@ use std::path::{Path, PathBuf};
 use sha2::{Digest, Sha256};
 
 use crate::error::XtaskError;
+use crate::files::{hex, read, read_text};
 
 const COF: &str = "crates/world-geomag/data/WMM.COF";
 const TABLE: &str = "crates/world-geomag/src/coefficients.rs";
@@ -70,7 +71,11 @@ pub(crate) fn verify(cof: &[u8], table: &str, provenance: &str) -> Result<(), Xt
         })?;
     let actual = hex(&Sha256::digest(cof));
     if recorded != actual {
-        return Err(XtaskError::ChecksumMismatch { recorded, actual });
+        return Err(XtaskError::ChecksumMismatch {
+            file: COF,
+            recorded,
+            actual,
+        });
     }
     let text = std::str::from_utf8(cof).map_err(|_| XtaskError::NotText {
         path: PathBuf::from(COF),
@@ -78,6 +83,8 @@ pub(crate) fn verify(cof: &[u8], table: &str, provenance: &str) -> Result<(), Xt
     if generate(text) != table {
         return Err(XtaskError::TableDiffers {
             path: PathBuf::from(TABLE),
+            file: COF,
+            regenerate: "gen-wmm",
         });
     }
     Ok(())
@@ -103,29 +110,6 @@ pub(crate) fn write(root: &Path) -> Result<(), XtaskError> {
         action: "writing",
         path,
         source,
-    })
-}
-
-fn read(root: &Path, relative: &str) -> Result<Vec<u8>, XtaskError> {
-    let path = root.join(relative);
-    std::fs::read(&path).map_err(|source| XtaskError::Io {
-        action: "reading",
-        path,
-        source,
-    })
-}
-
-fn read_text(root: &Path, relative: &str) -> Result<String, XtaskError> {
-    let bytes = read(root, relative)?;
-    String::from_utf8(bytes).map_err(|_| XtaskError::NotText {
-        path: root.join(relative),
-    })
-}
-
-fn hex(bytes: &[u8]) -> String {
-    bytes.iter().fold(String::new(), |mut out, byte| {
-        write!(out, "{byte:02x}").ok();
-        out
     })
 }
 
