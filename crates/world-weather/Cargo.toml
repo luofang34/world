@@ -1,0 +1,18 @@
+[package]
+name = "world-weather"
+description = "Weather queries over Airmass snapshots: station reports and advisories at a point and along a route"
+edition.workspace = true
+version.workspace = true
+# Not the workspace value: this crate builds on the Surveillance and Airmass
+# cores and cannot support an older toolchain than they declare.
+rust-version = "1.88"
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+airmass-core.workspace = true
+libm.workspace = true
+world-core.workspace = true
+
+[lints]
+workspace = true

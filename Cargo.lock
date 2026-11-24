@@ -3,6 +3,15 @@
 version = 4
 
 [[package]]
+name = "airmass-core"
+version = "0.1.0"
+source = "git+https://github.com/luofang34/Airmass?rev=fbfec00b07b8bb34d44c951b0f98a33543487537#fbfec00b07b8bb34d44c951b0f98a33543487537"
+dependencies = [
+ "serde",
+ "thiserror",
+]
+
+[[package]]
 name = "block-buffer"
 version = "0.10.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -87,6 +96,36 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde"
+version = "1.0.229"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4148590afebada386688f18773da617792bf2ef03ffc1e4cbd2b1d45b023e0ba"
+dependencies = [
+ "serde_core",
+ "serde_derive",
+]
+
+[[package]]
+name = "serde_core"
+version = "1.0.229"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "67dca2c9c51e58a4791a4b1ed58308b39c64224d349a935ab5039aa360942a48"
+dependencies = [
+ "serde_derive",
+]
+
+[[package]]
+name = "serde_derive"
+version = "1.0.229"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e7a5d71263a5a7d47b41f6b3f06ba276f10cc18b0931f1799f710578e2309348"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "sha2"
 version = "0.10.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -95,6 +134,16 @@ dependencies = [
  "cfg-if",
  "cpufeatures",
  "digest",
+]
+
+[[package]]
+name = "surveillance-core"
+version = "0.1.0"
+source = "git+https://github.com/luofang34/Surveillance?rev=36b5d96052e817da92fc62d383196d11e449df10#36b5d96052e817da92fc62d383196d11e449df10"
+dependencies = [
+ "libm",
+ "serde",
+ "thiserror",
 ]
 
 [[package]]
@@ -150,16 +199,20 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 name = "world"
 version = "0.1.0"
 dependencies = [
- "world-airmass",
+ "airmass-core",
+ "surveillance-core",
+ "thiserror",
+ "world-aloft",
  "world-atmosphere",
  "world-core",
  "world-geomag",
  "world-notices",
- "world-surveillance",
+ "world-traffic",
+ "world-weather",
 ]
 
 [[package]]
-name = "world-airmass"
+name = "world-aloft"
 version = "0.1.0"
 dependencies = [
  "libm",
@@ -218,9 +271,20 @@ dependencies = [
 ]
 
 [[package]]
-name = "world-surveillance"
+name = "world-traffic"
 version = "0.1.0"
 dependencies = [
+ "libm",
+ "surveillance-core",
+ "thiserror",
+ "world-core",
+]
+
+[[package]]
+name = "world-weather"
+version = "0.1.0"
+dependencies = [
+ "airmass-core",
  "libm",
  "world-core",
 ]
