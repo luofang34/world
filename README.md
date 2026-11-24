@@ -17,7 +17,9 @@ Enabled by default in the [`world`](crates/world) umbrella crate (`default = ["a
 
 - `world-core`: the shared vocabulary — geodetic position and datum,
   [`LocalTangentPlane`] (`Ned`), Somigliana [`normal_gravity`], decimal-year
-  epoch, dataset identity, provenance, validity window and uncertainty.
+  epoch, dataset identity, provenance, validity window and uncertainty, plus
+  the `WorldInstant` (monotonic and UTC readings of one instant) and the
+  bounded route sampling the Tier 1 queries share.
 - `world-geomag`: the World Magnetic Model (`WMM2025`): main field,
   declination and inclination at a position and date, with published one-sigma
   uncertainty. Verified against NOAA's official test values.
@@ -32,33 +34,59 @@ Enabled by default in the [`world`](crates/world) umbrella crate (`default = ["a
 
 ### Tier 1 — Moving Operational World (`no_std` + `alloc`, opt-in `moving`)
 
-Enabled via `features = ["moving"]` (or individually via `airmass`,
-`surveillance`, `notices`) on [`world`](crates/world). Every store is a
-value-typed, single-writer state machine with no process-global state, threads,
-sockets or system clocks — so a simulator holds one `MovingWorld` for physical
-truth and separate `MovingWorld` instances for each vehicle's delayed radio or
-datalink belief:
+Enabled via `features = ["moving"]` (or individually via `surveillance`,
+`airmass`, `aloft`, `notices`) on [`world`](crates/world).
 
-- `world-airmass`: multi-altitude winds and temperatures aloft (`SoundingProfile`),
-  surface station observations (`SurfaceObservation`, `FlightCategory`),
-  regional/global cloud layers (`CloudLayer`) and convective/icing/turbulence
-  hazard volumes (`WeatherHazard`), implementing `world_atmosphere::AtmosphereModel`
-  and `WindModel`.
-- `world-surveillance`: multi-source airborne and surface traffic store
-  (`SurveillanceStore`) spanning ADS-B (`1090ES`, `UAT 978`), ADS-R, TIS-B,
-  Mode-S/MLAT, FLARM, ASTM F3411 Remote ID, C2 networks, radar and simulated
-  traffic, with source-authority ranking, coasting/expiration, bounded dead
-  reckoning and ownship-relative CPA geometry.
-- `world-notices`: perishable operational restrictions — Temporary Flight
-  Restrictions (`TfrNotice`), aerodrome/runway closure NOTAMs
+Traffic and weather state belong to two dedicated libraries, and `world` is
+the umbrella a control stack or a mission planner reaches them through. It
+re-exports them unchanged, pinned by git revision in the workspace manifest,
+and keeps no second copy of what they own:
+
+- `world::surveillance` is
+  [`surveillance-core`](https://github.com/luofang34/Surveillance): canonical
+  `TrafficObservation` ingress, the single-writer `SurveillanceEngine`, fused
+  `TrackSnapshot`s with per-field freshness and provenance, deltas and the
+  exported schema.
+- `world::airmass` is [`airmass-core`](https://github.com/luofang34/Airmass):
+  `WeatherIngress`, the `WeatherStore` lifecycle (revisions, validity, expiry,
+  source selection), typed reports and advisories, and immutable
+  `WeatherSnapshotHandle`s.
+
+What this workspace adds is queries and models over those snapshots:
+
+- `world-traffic` (`world::traffic`): where a track is relative to ownship,
+  the nearest tracks and those within a radius, linear closest approach, and
+  traffic near a route through space and time. A track is placed with
+  Surveillance's own projection and the bounds stamped on its snapshot, and is
+  refused outside them. That placement is short-horizon dead reckoning, not a
+  prediction of where traffic will be.
+- `world-weather` (`world::weather`): what a station reports and which
+  advisories apply at a point or along a route, read from one Airmass
+  snapshot. An altitude band on a reference the caller gave no altitude for
+  comes back unresolved, and station positions come from the caller through
+  `StationLocator`.
+- `world-aloft` (`world::aloft`): the physical model of the air —
+  `SoundingProfile`s giving wind and temperature at a point
+  (`world_atmosphere::AtmosphereModel`, `WindModel`) and along a route, and
+  `CloudLayer`s. It is an atmosphere model, not a weather-product store.
+- `world-notices` (`world::notices`): perishable operational restrictions —
+  Temporary Flight Restrictions (`TfrNotice`), aerodrome/runway closure NOTAMs
   (`SurfaceClosureNotice`) and Special Use Airspace hot/cold activation
   schedules (`SuaActivationNotice`) referencing static `Flightbag` facility,
   runway and airspace keys without duplicating cycle-dated static charts.
+- `MovingWorld` composes the engine, the store, the notices and the aloft
+  model, and advances them from one `WorldInstant` carrying both the host's
+  monotonic clock (track ageing) and civil UTC (validity). Each `MovingWorld`
+  is one knowledge state with no process-global state, threads, sockets or
+  system clocks, so a simulator holds one for physical truth and another for
+  each vehicle's delayed radio or datalink belief.
 
 CI builds both Tier 0 and Tier 1 for `thumbv7em-none-eabihf` and
-`wasm32-unknown-unknown`. Anything that needs `std` (fetching, caching or
-streaming datasets over networks) belongs in a separate data-plane adapter
-that the models never depend on.
+`wasm32-unknown-unknown`. Anything that needs `std` or a transport — a radio
+decoder, an internet ADS-B or weather provider, a simulator bridge, a replay
+reader — is a host adapter that turns its source into a `TrafficObservation`
+or a `WeatherIngress` and feeds the engine or the store. The models never
+depend on one.
 
 ## Usage
 
@@ -75,6 +103,7 @@ let declination_rad = field.declination_rad();
 
 ## Licence
 
-AGPL-3.0-or-later; see [LICENSE](LICENSE). The datasets keep their own
+AGPL-3.0-or-later; see [LICENSE](LICENSE). `surveillance-core` and
+`airmass-core` are MIT-licensed dependencies. The datasets keep their own
 terms, recorded in each model's provenance: the World Magnetic Model is
 in the public domain.

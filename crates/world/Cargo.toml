@@ -1,9 +1,10 @@
 [package]
 name = "world"
-description = "Experimental prototype (not for navigation or flight): two-tier Earth environment models (physical baseline and moving operational world)"
+description = "Experimental prototype (not for navigation or flight): Earth environment models and the umbrella over the Surveillance and Airmass domain libraries"
 edition.workspace = true
 version.workspace = true
-rust-version.workspace = true
+# The Surveillance and Airmass cores this crate builds on declare 1.88.
+rust-version = "1.88"
 license.workspace = true
 repository.workspace = true
 
@@ -11,18 +12,23 @@ repository.workspace = true
 default = ["atmosphere", "geomag"]
 atmosphere = ["dep:world-atmosphere"]
 geomag = ["dep:world-geomag"]
-airmass = ["dep:world-airmass", "atmosphere"]
-surveillance = ["dep:world-surveillance"]
+aloft = ["dep:world-aloft", "atmosphere"]
+airmass = ["dep:airmass-core", "dep:world-weather"]
+surveillance = ["dep:surveillance-core", "dep:world-traffic"]
 notices = ["dep:world-notices", "atmosphere"]
-moving = ["airmass", "surveillance", "notices"]
+moving = ["airmass", "surveillance", "notices", "aloft", "dep:thiserror"]
 
 [dependencies]
-world-airmass = { workspace = true, optional = true }
+airmass-core = { workspace = true, optional = true }
+surveillance-core = { workspace = true, optional = true }
+thiserror = { workspace = true, optional = true }
+world-aloft = { workspace = true, optional = true }
 world-atmosphere = { workspace = true, optional = true }
 world-core = { workspace = true }
 world-geomag = { workspace = true, optional = true }
 world-notices = { workspace = true, optional = true }
-world-surveillance = { workspace = true, optional = true }
+world-traffic = { workspace = true, optional = true }
+world-weather = { workspace = true, optional = true }
 
 [lints]
 workspace = true

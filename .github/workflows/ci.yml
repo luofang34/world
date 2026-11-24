@@ -42,12 +42,25 @@ jobs:
       - run: cargo run -p xtask -- check-wmm
 
   msrv:
-    name: Minimum supported Rust
+    name: Minimum supported Rust (${{ matrix.rust }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # The models that reach no domain library.
+          - rust: 1.85.0
+            packages: -p world-core -p world-geomag -p world-atmosphere -p world-potential -p world-aloft -p world-notices -p xtask
+          # The umbrella and the query layers build on the Surveillance and
+          # Airmass cores, which declare 1.88.
+          - rust: 1.88.0
+            packages: --workspace
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: dtolnay/rust-toolchain@1.85.0
-      - run: cargo build --workspace --all-features
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ matrix.rust }}
+      - run: cargo build ${{ matrix.packages }} --all-features
 
   no-std:
     name: no_std (${{ matrix.target }})
@@ -64,4 +77,4 @@ jobs:
       # The bare-metal target has no std, so a model that reaches for it
       # fails to build here rather than in firmware.
       - run: cargo build --release --target ${{ matrix.target }} -p world -p world-core -p world-geomag -p world-atmosphere -p world-potential
-      - run: cargo build --release --target ${{ matrix.target }} -p world --features moving -p world-airmass -p world-surveillance -p world-notices
+      - run: cargo build --release --target ${{ matrix.target }} -p world --features moving -p world-aloft -p world-traffic -p world-weather -p world-notices
