@@ -8,19 +8,25 @@
 //! can be switched off through [`Switches`].
 //!
 //! A model is a pure function of its inputs: it holds no state between
-//! calls, reads no files and allocates nothing. The activity indices are
-//! the caller's to supply; nothing here looks them up.
+//! calls, reads no files and allocates nothing. Without the `alloc`
+//! feature the activity indices are the caller's to supply; when `alloc`
+//! is enabled, [`space_weather`] parses GFZ, NOAA SWPC and CelesTrak
+//! index files from text in memory and synthesizes [`MsisInput`] and
+//! [`ApHistory`] values for arbitrary UTC instants.
 //!
 //! Outputs are SI ([`ThermosphereState`]). The reference implementation the
 //! parameters and the arithmetic come from is named, with its checksum and
 //! terms, by [`NRLMSISE00`].
 //!
-//! `no_std` and allocation-free, with `world-core` and `libm` its only
-//! dependencies. Every transcendental function goes through `libm`, so a
-//! result is the same bits on a host, in firmware and in a browser.
+//! `no_std` and allocation-free by default, with `world-core` and `libm`
+//! its only dependencies (enabling `alloc` adds only `extern crate alloc`).
+//! Every transcendental function goes through `libm`, so a result is the
+//! same bits on a host, in firmware and in a browser.
 
 #![no_std]
 
+#[cfg(feature = "alloc")]
+extern crate alloc;
 #[cfg(test)]
 extern crate std;
 
@@ -28,6 +34,8 @@ mod error;
 mod input;
 mod math;
 mod nrlmsise00;
+#[cfg(feature = "alloc")]
+pub mod space_weather;
 mod state;
 mod switches;
 

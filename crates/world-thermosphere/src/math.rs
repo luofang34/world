@@ -32,3 +32,8 @@ pub(crate) fn pow(x: f64, y: f64) -> f64 {
 pub(crate) fn sq(x: f64) -> f64 {
     x * x
 }
+
+#[cfg(feature = "alloc")]
+pub(crate) fn floor(x: f64) -> f64 {
+    libm::floor(x)
+}
