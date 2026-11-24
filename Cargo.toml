@@ -8,6 +8,7 @@ members = [
     "crates/world-geomag",
     "crates/world-notices",
     "crates/world-potential",
+    "crates/world-propagation",
     "crates/world-traffic",
     "crates/world-weather",
     "xtask",
