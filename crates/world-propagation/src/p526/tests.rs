@@ -3,10 +3,9 @@ use core::f64::consts::{PI, SQRT_2};
 use super::*;
 use crate::{Frequency, Loss, PathLoss, Polarisation, Signal};
 
-/// C(x) and S(x) to ten decimals. They agree with Abramowitz & Stegun,
-/// *Handbook of Mathematical Functions*, Table 7.7 to its seven places;
-/// the extra places were recomputed here from the Maclaurin series of
-/// eq. (6) in 60-digit decimal arithmetic.
+/// C(x) and S(x) to ten decimals, from the Maclaurin series of eq. (6)
+/// summed in 60-digit decimal arithmetic (an independent oracle; the
+/// Boersma expansions under test are not series).
 const FRESNEL_TABLE: [(f64, f64, f64); 8] = [
     (0.5, 0.492_344_225_9, 0.064_732_432_9),
     (1.0, 0.779_893_400_4, 0.438_259_147_4),

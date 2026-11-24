@@ -2,12 +2,13 @@
 //!
 //! P.526-16 publishes no validation examples of its own. P.452-18
 //! computes its diffraction loss with the same delta-Bullington method
-//! (P.452 §4.2.3 is P.526 §4.5.2 with ε = 22, σ = 0.003 S/m over land),
-//! and ITU-R Working Party 3M's validation examples for P.452 list that
+//! (P.452's delta-Bullington section is P.526 §4.5.2 with ε = 22,
+//! σ = 0.003 S/m over land), and the P.452 validation examples list that
 //! loss as `Ld50` and the smooth-Earth term as `Ldsph`.
 //!
-//! Source: the validation results distributed with the WP 3M-approved
-//! reference implementation's Python port, github.com/eeveetza/Py452 at
+//! Source: the "proposed set" of validation profiles and results in the
+//! Python port of the WP 3M-approved P.452 reference implementation,
+//! github.com/eeveetza/Py452 at
 //! commit 77aa8164b2b046850b10ec159428650614c5b16b,
 //! `tests/validation_examples/results/test_result_flat_land_{5,100}km.csv`
 //! (rows with p = 50 %; profiles `test_profile_flat_land_{5,100}km.csv`
@@ -160,6 +161,10 @@ fn land_70_km_matches_p452_validation() {
     assert!((loss.smooth_surface_tx_m - 806.386719).abs() < 1e-5);
     assert!((loss.smooth_surface_rx_m - 673.064055).abs() < 1e-5);
     assert!((loss.spherical_earth_db - 40.65508633).abs() < TOLERANCE_DB);
+    // L_ba and L_bs are not in the reference file; these are this
+    // crate's values, pinned once L_d50 and L_dsph matched.
+    assert!((loss.actual_bullington_db - 44.753_813_7).abs() < 1e-6);
+    assert!((loss.smooth_bullington_db - 26.054_623_2).abs() < 1e-6);
     assert!(
         (loss.loss_db - 59.35426906).abs() < TOLERANCE_DB,
         "{loss:?}"
