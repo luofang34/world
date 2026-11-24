@@ -2,6 +2,76 @@
 
 use core::fmt;
 
+/// What went wrong while parsing a tabulated antenna pattern file.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum PatternParseErrorKind {
+    /// The input contained no header or pattern records.
+    Empty,
+    /// A required header record or pattern section is missing.
+    MissingHeader(&'static str),
+    /// A header or section line did not match the format grammar.
+    MalformedRecord(&'static str),
+    /// A numeric header or table field could not be parsed as a number.
+    BadNumber(&'static str),
+    /// The declared point count in a cut did not match the parsed rows.
+    InvalidCount {
+        /// Point count declared in the section header.
+        expected: usize,
+        /// Actual number of sample rows parsed.
+        found: usize,
+    },
+    /// An angle sample fell outside the valid domain for the cut.
+    InvalidAngle {
+        /// The offending angle, degrees.
+        angle_deg: f64,
+    },
+    /// A sample angle was not strictly greater than the previous sample.
+    NonMonotonicAngle {
+        /// Zero-based index of the non-monotonic sample inside the cut.
+        index: usize,
+    },
+    /// A numeric pattern value was non-finite or physically invalid.
+    NonFiniteValue {
+        /// Zero-based index of the offending sample inside the cut.
+        index: usize,
+    },
+    /// The file declared an unsupported gain or pattern unit.
+    UnsupportedUnits,
+    /// The file ended without its required end-of-file marker.
+    MissingEndMarker,
+}
+
+impl fmt::Display for PatternParseErrorKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Empty => f.write_str("empty antenna pattern input"),
+            Self::MissingHeader(name) => write!(f, "missing required header or cut `{name}`"),
+            Self::MalformedRecord(detail) => write!(f, "malformed record: {detail}"),
+            Self::BadNumber(field) => write!(f, "invalid numeric value in `{field}`"),
+            Self::InvalidCount { expected, found } => {
+                write!(f, "expected {expected} pattern samples, found {found}")
+            }
+            Self::InvalidAngle { angle_deg } => {
+                write!(f, "angle {angle_deg} deg is outside the valid cut domain")
+            }
+            Self::NonMonotonicAngle { index } => {
+                write!(
+                    f,
+                    "sample angle at index {index} is not strictly increasing"
+                )
+            }
+            Self::NonFiniteValue { index } => {
+                write!(
+                    f,
+                    "pattern sample at index {index} is non-finite or invalid"
+                )
+            }
+            Self::UnsupportedUnits => f.write_str("unsupported antenna gain or pattern units"),
+            Self::MissingEndMarker => f.write_str("missing required end-of-file marker"),
+        }
+    }
+}
+
 /// Why a propagation model or an antenna pattern refused its input.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum PropagationError {
@@ -46,6 +116,24 @@ pub enum PropagationError {
         /// Largest angle the pattern defines, degrees.
         max_deg: f64,
     },
+    /// A tabulated antenna pattern file failed syntax or physical validation.
+    InvalidPatternFormat {
+        /// 1-based line number of the offending input, or 0 for whole-file errors.
+        line: usize,
+        /// Specific pattern parse failure.
+        kind: PatternParseErrorKind,
+    },
+    /// A caller-supplied atmospheric grid provider failed SHA-256 integrity
+    /// verification or lacked an expected content digest.
+    GridIntegrityMismatch,
+    /// A caller-supplied atmospheric grid provider had no data covering the
+    /// requested ground station coordinates.
+    GridDataUnavailable {
+        /// Station geodetic latitude, degrees.
+        latitude_deg: f64,
+        /// Station geodetic longitude, degrees.
+        longitude_deg: f64,
+    },
 }
 
 impl fmt::Display for PropagationError {
@@ -77,6 +165,23 @@ impl fmt::Display for PropagationError {
             } => write!(
                 f,
                 "off-axis angle {off_axis_deg} deg is outside the pattern's range {min_deg}..={max_deg} deg"
+            ),
+            Self::InvalidPatternFormat { line, kind } => {
+                if *line > 0 {
+                    write!(f, "antenna pattern line {line}: {kind}")
+                } else {
+                    write!(f, "antenna pattern: {kind}")
+                }
+            }
+            Self::GridIntegrityMismatch => {
+                f.write_str("atmospheric grid provider failed SHA-256 integrity verification")
+            }
+            Self::GridDataUnavailable {
+                latitude_deg,
+                longitude_deg,
+            } => write!(
+                f,
+                "no atmospheric grid data covers ({latitude_deg} deg, {longitude_deg} deg)"
             ),
         }
     }

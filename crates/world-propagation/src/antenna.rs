@@ -11,13 +11,29 @@
 //! All three are rotationally symmetric and take the angle from boresight
 //! in degrees, as the Recommendations write them.
 
+#[cfg(feature = "alloc")]
+mod cut;
 mod f1245;
+#[cfg(feature = "alloc")]
+mod msi;
+#[cfg(feature = "alloc")]
+mod nsma;
+#[cfg(feature = "alloc")]
+mod nsma_fields;
 mod s465;
 mod s580;
+#[cfg(feature = "alloc")]
+mod tabulated;
 
+#[cfg(feature = "alloc")]
+pub use cut::{
+    AntennaMetadata, CutPlane, DBD_TO_DBI, PatternCut, PatternPolarisation, PatternSample,
+};
 pub use f1245::F1245;
 pub use s465::S465;
 pub use s580::S580;
+#[cfg(feature = "alloc")]
+pub use tabulated::TabulatedAntennaPattern;
 
 use crate::error::{PropagationError, positive};
 use crate::units::Frequency;
