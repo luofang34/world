@@ -2,14 +2,16 @@
 resolver = "3"
 members = [
     "crates/world",
-    "crates/world-airmass",
+    "crates/world-aloft",
     "crates/world-atmosphere",
     "crates/world-core",
     "crates/world-geomag",
     "crates/world-notices",
     "crates/world-potential",
-    "crates/world-surveillance",
+    "crates/world-propagation",
     "crates/world-thermosphere",
+    "crates/world-traffic",
+    "crates/world-weather",
     "xtask",
 ]
 
@@ -22,13 +24,20 @@ repository = "https://github.com/luofang34/world"
 
 [workspace.dependencies]
 world = { path = "crates/world", default-features = false }
-world-airmass = { path = "crates/world-airmass" }
+world-aloft = { path = "crates/world-aloft" }
 world-atmosphere = { path = "crates/world-atmosphere" }
 world-core = { path = "crates/world-core" }
 world-geomag = { path = "crates/world-geomag" }
 world-notices = { path = "crates/world-notices" }
-world-surveillance = { path = "crates/world-surveillance" }
+world-traffic = { path = "crates/world-traffic" }
+world-weather = { path = "crates/world-weather" }
 libm = "0.2"
+thiserror = { version = "2.0", default-features = false }
+# The dedicated domain libraries own traffic and weather state. Only their
+# portable cores are named: the radio adapters and the repositories' root
+# packages reach a private sibling checkout.
+surveillance-core = { git = "https://github.com/luofang34/Surveillance", rev = "36b5d96052e817da92fc62d383196d11e449df10", default-features = false }
+airmass-core = { git = "https://github.com/luofang34/Airmass", rev = "fbfec00b07b8bb34d44c951b0f98a33543487537", default-features = false }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

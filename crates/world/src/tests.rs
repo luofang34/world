@@ -17,54 +17,48 @@ fn standard_world_evaluates_atmosphere_geomag_and_gravity() {
     assert!((g - 9.8).abs() < 0.05);
 }
 
+/// Compiles only while `$umbrella` and `$library` are one type: a function
+/// pointer from one to the other cannot be the identity function otherwise.
+#[cfg(feature = "moving")]
+macro_rules! assert_same_type {
+    ($($umbrella:ty = $library:ty;)+) => {
+        $(let _: fn($library) -> $umbrella = ::core::convert::identity;)+
+    };
+}
+
+/// The umbrella's traffic and weather vocabulary is the libraries' own. A
+/// type declared in this workspace under one of these names would be a
+/// second, shadow definition and would fail to compile here.
 #[cfg(feature = "moving")]
 #[test]
-fn truth_and_belief_moving_worlds_are_independent_values() {
-    use crate::airmass::{AloftLevel, SoundingProfile, WindModel};
-    use crate::atmosphere::{Altitude, AtmospherePoint};
-    use crate::{DecimalYear, MovingWorld, Ned, ValidityWindow};
+fn the_umbrella_re_exports_the_domain_libraries_own_types() {
+    assert_same_type! {
+        crate::surveillance::SurveillanceEngine = surveillance_core::SurveillanceEngine;
+        crate::surveillance::TrafficObservation = surveillance_core::TrafficObservation;
+        crate::surveillance::TrackSnapshot = surveillance_core::TrackSnapshot;
+        crate::surveillance::TrackDelta = surveillance_core::TrackDelta;
+        crate::surveillance::TrackKey = surveillance_core::TrackKey;
+        crate::surveillance::AddressNamespace = surveillance_core::AddressNamespace;
+        crate::surveillance::ProjectionBounds = surveillance_core::ProjectionBounds;
+        crate::surveillance::DeliveryPath = surveillance_core::DeliveryPath;
+        crate::surveillance::SourceRef = surveillance_core::SourceRef;
+        crate::airmass::WeatherStore = airmass_core::WeatherStore;
+        crate::airmass::WeatherIngress = airmass_core::WeatherIngress;
+        crate::airmass::WeatherSnapshotHandle = airmass_core::WeatherSnapshotHandle;
+        crate::airmass::FlightCategory = airmass_core::FlightCategory;
+        crate::airmass::DeliveryPath = airmass_core::DeliveryPath;
+        crate::airmass::SourceRef = airmass_core::SourceRef;
+        crate::airmass::ProductProvenance = airmass_core::ProductProvenance;
+    }
 
-    let mut truth = MovingWorld::default();
-    let belief = MovingWorld::default();
-
-    let profile = SoundingProfile::new(
-        1,
-        None,
-        0.0,
-        ValidityWindow {
-            from: DecimalYear(2026.0),
-            until: DecimalYear(2027.0),
-        },
-        None,
-        [AloftLevel {
-            altitude: Altitude::Geopotential(1_000.0),
-            temperature_k: 285.0,
-            pressure_pa: None,
-            wind_ned_m_s: Ned {
-                north_m: 14.0,
-                east_m: -6.0,
-                down_m: 0.0,
-            },
-            gust_m_s: 0.0,
-            turbulence_edr: 0.0,
-        }]
-        .into(),
-    )
-    .unwrap();
-    truth.airmass.upsert_sounding(profile).unwrap();
-
-    let query = AtmospherePoint {
-        latitude_deg: 39.18,
-        longitude_deg: -75.53,
-        altitude: Altitude::Geopotential(1_000.0),
-        at: DecimalYear(2026.5),
-    };
-    assert_eq!(
-        truth.airmass.sample(query).unwrap().wind_ned_m_s.north_m,
-        14.0
-    );
-    assert_eq!(
-        belief.airmass.sample(query).unwrap().wind_ned_m_s.north_m,
-        0.0
-    );
+    // The world's members are those types, not wrappers around them.
+    fn members(
+        world: crate::MovingWorld,
+    ) -> (
+        surveillance_core::SurveillanceEngine,
+        airmass_core::WeatherStore,
+    ) {
+        (world.surveillance, world.weather)
+    }
+    let _ = members;
 }

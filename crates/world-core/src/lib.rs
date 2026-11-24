@@ -7,7 +7,10 @@
 //! dates ([`ValidityWindow`]) and how well ([`Uncertainty`]). A
 //! [`LocalTangentPlane`] relates geodetic positions to the north-east-down
 //! frame a vehicle is simulated or estimated in, on the datum's ellipsoid,
-//! and [`normal_gravity`] gives the datum's normal gravity there.
+//! and [`normal_gravity`] gives the datum's normal gravity there. A
+//! [`WorldInstant`] names one instant on the monotonic and UTC clocks that
+//! perishable state is driven by, and [`sample_route`] walks a route of
+//! [`RoutePoint`]s at stated instants.
 //!
 //! `no_std` and allocation-free, with `libm` its only dependency, so a
 //! model built on it runs in flight-controller firmware as well as on a
@@ -15,18 +18,22 @@
 
 #![no_std]
 
+mod clock;
 mod dataset;
 mod ellipsoid;
 mod gravity;
 mod local;
 mod position;
+mod route;
 mod time;
 mod uncertainty;
 
+pub use clock::{ClockCorrespondence, ClockError, WorldInstant};
 pub use dataset::{DatasetId, Provenance, ValidityWindow};
 pub use ellipsoid::{Ecef, Ellipsoid, WGS84};
 pub use gravity::normal_gravity;
 pub use local::{LocalTangentPlane, Ned, PositionError};
 pub use position::{GeodeticPosition, HorizontalDatum};
+pub use route::{RouteError, RoutePoint, RouteSamples, RouteSampling, sample_route};
 pub use time::DecimalYear;
 pub use uncertainty::Uncertainty;
