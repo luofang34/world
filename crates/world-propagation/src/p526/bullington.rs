@@ -3,11 +3,10 @@
 //! it with the smooth-Earth loss (§4.5.2, the "delta-Bullington" method).
 
 use crate::error::{PropagationError, non_negative, positive};
+use crate::ground::{Ground, validate_ground};
 use crate::loss::{Loss, PathLoss, Signal};
 use crate::p526::knife_edge::knife_edge_loss_approx_db;
-use crate::p526::smooth_earth::{
-    Ground, MIN_FREQUENCY_HZ, TerminalPath, spherical_earth_loss, validate_ground,
-};
+use crate::p526::smooth_earth::{MIN_FREQUENCY_HZ, TerminalPath, spherical_earth_loss};
 use crate::profile::{Flattened, TerrainProfile, samples_km, validate};
 
 /// A terminal-to-terminal path over a terrain profile.

@@ -9,6 +9,8 @@
 //! - [`p526`]: ITU-R P.526-16 diffraction: a single knife edge, a smooth
 //!   spherical Earth, and the delta-Bullington method over a terrain
 //!   profile.
+//! - [`itm`]: the NTIA/ITS Irregular Terrain Model (Longley–Rice) in
+//!   point-to-point mode, ported from NTIA's reference implementation.
 //! - [`antenna`]: the ITU-R S.465, S.580 and F.1245 reference radiation
 //!   patterns as gain functions of off-axis angle.
 //!
@@ -26,6 +28,8 @@ extern crate std;
 
 pub mod antenna;
 mod error;
+mod ground;
+pub mod itm;
 mod loss;
 pub mod p526;
 mod profile;
@@ -34,6 +38,7 @@ mod units;
 
 pub use antenna::AntennaPattern;
 pub use error::PropagationError;
+pub use ground::Ground;
 pub use loss::{Loss, PathLoss, Signal};
 pub use profile::{ProfilePoint, TerrainProfile};
 pub use units::{Frequency, Percentage, Polarisation, SPEED_OF_LIGHT_M_S};

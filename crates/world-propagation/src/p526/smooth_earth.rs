@@ -2,6 +2,7 @@
 //! for 10 MHz and above.
 
 use crate::error::{PropagationError, non_negative, positive};
+use crate::ground::{Ground, validate_ground};
 use crate::loss::{Loss, PathLoss, Signal};
 use crate::units::Polarisation;
 
@@ -12,30 +13,6 @@ pub const MIN_FREQUENCY_HZ: f64 = 10.0e6;
 /// Effective Earth radius to take when no other information is
 /// available (§1), m.
 pub const DEFAULT_EFFECTIVE_EARTH_RADIUS_M: f64 = 8_500_000.0;
-
-/// Electrical constants of the Earth's surface along the path.
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Ground {
-    /// Effective relative permittivity ε.
-    pub relative_permittivity: f64,
-    /// Effective conductivity σ, S/m.
-    pub conductivity_s_m: f64,
-}
-
-impl Ground {
-    /// Average land, ε = 22 and σ = 0.003 S/m: the values P.452 and
-    /// P.1812 apply to the land part of a path with this method.
-    pub const LAND: Ground = Ground {
-        relative_permittivity: 22.0,
-        conductivity_s_m: 0.003,
-    };
-
-    /// Sea water, ε = 80 and σ = 5 S/m, as P.452 and P.1812 apply them.
-    pub const SEA: Ground = Ground {
-        relative_permittivity: 80.0,
-        conductivity_s_m: 5.0,
-    };
-}
 
 /// The two terminals over a smooth Earth.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -82,12 +59,6 @@ impl SmoothEarth {
     pub fn ground(&self) -> Ground {
         self.ground
     }
-}
-
-pub(crate) fn validate_ground(ground: Ground) -> Result<(), PropagationError> {
-    positive("relative_permittivity", ground.relative_permittivity)?;
-    non_negative("conductivity_s_m", ground.conductivity_s_m)?;
-    Ok(())
 }
 
 /// A smooth-Earth diffraction loss.

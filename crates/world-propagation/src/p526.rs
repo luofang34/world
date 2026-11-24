@@ -23,8 +23,7 @@ pub use knife_edge::{
     diffraction_parameter, knife_edge_loss_approx_db, knife_edge_loss_db,
 };
 pub use smooth_earth::{
-    DEFAULT_EFFECTIVE_EARTH_RADIUS_M, Ground, MIN_FREQUENCY_HZ, SmoothEarth, SmoothEarthLoss,
-    TerminalPath,
+    DEFAULT_EFFECTIVE_EARTH_RADIUS_M, MIN_FREQUENCY_HZ, SmoothEarth, SmoothEarthLoss, TerminalPath,
 };
 
 #[cfg(test)]
