@@ -63,5 +63,5 @@ jobs:
           targets: ${{ matrix.target }}
       # The bare-metal target has no std, so a model that reaches for it
       # fails to build here rather than in firmware.
-      - run: cargo build --release --target ${{ matrix.target }} -p world -p world-core -p world-geomag -p world-atmosphere
+      - run: cargo build --release --target ${{ matrix.target }} -p world -p world-core -p world-geomag -p world-atmosphere -p world-potential
       - run: cargo build --release --target ${{ matrix.target }} -p world --features moving -p world-airmass -p world-surveillance -p world-notices

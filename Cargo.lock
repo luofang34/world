@@ -200,6 +200,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "world-potential"
+version = "0.1.0"
+dependencies = [
+ "libm",
+ "sha2",
+ "world-core",
+ "world-geomag",
+]
+
+[[package]]
 name = "world-surveillance"
 version = "0.1.0"
 dependencies = [
